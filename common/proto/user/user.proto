@@ -1,0 +1,205 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/AlfariziYasir/transactions/common/proto/user";
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "User Service API";
+        version: "1.0";
+        description: "E-commerce system";
+        contact: {
+            url: "https://github.com/AlfariziYasir/transactions";
+        };
+    };
+
+    schemes: HTTP;
+    schemes: HTTPS;
+    consumes: "application/json";
+    produces: "application/json";
+    security_definitions: {
+        security: {
+            key: "BearerAuth";
+            value: {
+                type: TYPE_API_KEY;
+                in: IN_HEADER;
+                name: "Authorization";
+                description: "input token within format: Bearer <access_token>";
+            }
+        }
+    };
+    security: {
+        security_requirement: {
+            key: "BearerAuth";
+            value: {};
+        }
+    };
+};
+
+service UserService {
+    rpc Login(LoginRequest) returns (LoginResponse) {
+        option (google.api.http) = {
+            post: "/auth/login"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "User Login";
+            description: "user email password to get Access & Refresh Token.";
+            tags: "Authentication";
+            security: {};
+        };
+    };
+    rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/auth/logout"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Logout";
+            description: "revoke Access Token (Blacklist) and remove Refresh Token session.";
+            tags: "Authentication";
+        };
+    };
+    rpc Refresh(google.protobuf.Empty) returns (RefreshResponse) {
+        option (google.api.http) = {
+            post: "/v1/auth/refresh"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Refresh Token";
+            description: "get new Access Token using valid Refresh Token  ";
+            tags: "Authentication";
+        };
+    };
+    rpc Create(RegisterRequest) returns (User) {
+        option (google.api.http) = {
+            post: "/v1/users"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "register new user";
+            tags: "User Management";
+            security: {};
+        };
+    };
+    rpc Get(IdRequest) returns (User) {
+        option (google.api.http) = {
+            get: "/v1/users/{user_id}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "get Detail User";
+            tags: "User Management";
+        };
+    };
+    rpc List(ListRequest) returns (ListResponse) {
+        option (google.api.http) = {
+            get: "/v1/users"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "List Users";
+            description: "get list users by pagination and role filter.";
+            tags: "User Management";
+        };
+    };
+    rpc Update(UpdateRequest) returns (User) {
+        option (google.api.http) = {
+            put: "/v1/users/{user_id}"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Update user data";
+            tags: "User Management";
+        };
+    };
+    rpc Delete(IdRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/users/{user_id}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Soft Delete User";
+            tags: "User Management";
+        };
+    };
+}
+
+enum UserRole {
+  UNSPECIFIED = 0;
+  CUSTOMER = 1;
+  ADMIN = 2;
+}
+
+message User {
+    string user_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+    string name = 2;
+    string email = 3;
+    string role = 4;
+    bool is_active = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+    google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+    google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+message RegisterRequest {
+    string name = 1 [(google.api.field_behavior) = REQUIRED]; 
+    string email = 2 [
+        (google.api.field_behavior) = REQUIRED,
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "active email",
+            example: "\"user@example.id\""
+        }
+    ];
+    string password = 3 [
+        (google.api.field_behavior) = REQUIRED,
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "8 characters minimum",
+        }
+    ];
+    UserRole role = 4; 
+}
+
+message UpdateRequest {
+    string user_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+    string name = 2;
+    string email = 3;
+    UserRole role = 4;
+}
+
+message LoginRequest {
+    string email = 1 [(google.api.field_behavior) = REQUIRED];
+    string password = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message LoginResponse {
+    string access_token = 1;
+    string refresh_token = 2;
+}
+
+message RefreshResponse {
+    string access_token = 1;
+}
+
+message IdRequest {
+    string user_id = 1;
+}
+
+message ListRequest {
+    int32 page_size = 1 [
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            default: "10",
+            description: "count data per page"
+        }
+    ];
+    string page_token = 2;
+    string email = 3;
+    string name = 4;
+}
+
+message ListResponse {
+    repeated User users = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+}

@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package order.v1;
+
+option go_package = "github.com/AlfariziYasir/transactions/common/proto/order";
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Order Service API";
+        version: "1.0";
+        description: "management order service (Checkout, Tracking, History).";
+    };
+    security_definitions: {
+        security: {
+            key: "BearerAuth";
+            value: {
+                type: TYPE_API_KEY;
+                in: IN_HEADER;
+                name: "Authorization";
+            }
+        }
+    };
+    security: {
+        security_requirement: {
+            key: "BearerAuth";
+            value: {};
+        }
+    };
+};
+
+service OrderService {
+  rpc Create(CreateOrderRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+        post: "/v1/orders"
+        body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+        summary: "Checkout Order Baru";
+        description: "begin order transaction. Status: PENDING.";
+        tags: "Order";
+    };
+  }
+
+  rpc Get(GetOrderRequest) returns (Order) {
+    option (google.api.http) = {
+        get: "/v1/orders/{order_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+        summary: "Get Detail Order";
+        tags: "Order";
+    };
+  }
+
+  rpc List(ListOrderRequest) returns (ListOrderResponse) {
+    option (google.api.http) = {
+        get: "/v1/orders"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+        summary: "list order history";
+        tags: "Order Public";
+    };
+  }
+
+  rpc Cancel(CancelOrderRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+        post: "/v1/orders/{order_id}/cancel"
+        body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+        summary: "Canceled Order";
+        description: "User can be cancel order when status pending.";
+        tags: "Order Public";
+    };
+  }
+}
+
+enum OrderStatus {
+  UNSPECIFIED = 0;
+  PENDING = 1;      
+  PAID = 2;         
+  READY_TO_SHIP = 3;
+  SHIPPED = 4;      
+  DELIVERED = 5;    
+  CANCELED = 6;    
+  FAILED = 7;       
+}
+
+message Order {
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string user_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string total_amount = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string currency = 4;
+  OrderStatus status = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string shipping_address = 6;
+  repeated OrderItem items = 7;
+  google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+message OrderItem {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  string price = 4;
+  string subtotal = 5;
+}
+
+message CreateOrderRequest {
+  message ItemRequest {
+      string product_id = 1 [(google.api.field_behavior) = REQUIRED];
+      int32 quantity = 2 [(google.api.field_behavior) = REQUIRED];
+  }
+  repeated ItemRequest items = 1 [(google.api.field_behavior) = REQUIRED];
+  string shipping_address = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetOrderRequest {
+    string order_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListOrderRequest {
+    int32 page_size = 1;
+    string page_token = 2;
+    string user_id = 3;
+    OrderStatus status = 4;
+}
+
+message ListOrderResponse {
+    repeated Order orders = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+}
+
+message CancelOrderRequest {
+    string order_id = 1 [(google.api.field_behavior) = REQUIRED];
+    string reason = 2;
+}

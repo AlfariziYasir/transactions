@@ -1,0 +1,7 @@
+go 1.26.0
+
+use ./common
+use ./services/inventory
+use ./services/order
+use ./services/user
+use ./services/notification
