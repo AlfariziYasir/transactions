@@ -449,7 +449,7 @@
       "type": "string",
       "enum": [
         "UNSPECIFIED",
-        "CUSTOMER",
+        "USER",
         "ADMIN"
       ],
       "default": "UNSPECIFIED"

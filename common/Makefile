@@ -1,6 +1,7 @@
 # Variabel Path
 PROTO_USER_DIR = proto/user
 PROTO_ORDER_DIR = proto/order
+PROTO_INVENTORY_DIR = proto/inventory
 THIRD_PARTY = ../third_party
 OUT_DIR = .
 
@@ -29,3 +30,16 @@ order-proto:
 		$(PROTO_ORDER_DIR)/order.proto
 
 .PHONY: order-proto
+
+inventory-proto:
+	mkdir -p docs
+	
+	protoc -I . \
+		-I $(THIRD_PARTY) \
+		--go_out=$(OUT_DIR) --go_opt=paths=source_relative \
+		--go-grpc_out=$(OUT_DIR) --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=$(OUT_DIR) --grpc-gateway_opt=paths=source_relative \
+		--openapiv2_out=./docs --openapiv2_opt=logtostderr=true,allow_merge=true,merge_file_name=inventory_api \
+		$(PROTO_INVENTORY_DIR)/inventory.proto
+
+.PHONY: inventory-proto

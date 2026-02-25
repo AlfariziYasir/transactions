@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
-	"github.com/AlfariziYasir/transactions/services/order/config"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
 	"github.com/google/uuid"
@@ -26,7 +24,6 @@ type service struct {
 	outboxRepo  ports.OutboxRepo
 	trx         postgres.Trx
 	log         *logger.Logger
-	cfg         *config.Config
 }
 
 func NewServices(
@@ -91,18 +88,17 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	}
 	defer s.trx.Rollback(txCtx)
 
-	orderID := uuid.NewString()
-	orderReq := map[string]any{
-		"id":               orderID,
-		"user_id":          userID,
-		"total_amount":     totalAmount,
-		"currency":         "IDR",
-		"status":           string(model.OrderStatusPending),
-		"shipping_address": req.ShippingAddress,
-		"created_at":       time.Now(),
-		"updated_at":       time.Now(),
+	order := model.Order{
+		ID:              uuid.NewString(),
+		UserID:          userID,
+		TotalAmount:     totalAmount,
+		Currency:        "IDR",
+		Status:          model.OrderStatusPending,
+		ShippingAddress: req.ShippingAddress,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
-	err = s.orderRepo.Create(txCtx, orderReq)
+	err = s.orderRepo.Create(txCtx, &order)
 	if err != nil {
 		s.log.Error("failed to create order", zap.Error(err))
 		return err
@@ -110,7 +106,7 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 
 	rows := [][]any{}
 	for _, item := range orderItems {
-		item.OrderID = orderID
+		item.OrderID = order.ID
 		rows = append(rows, item.ToRow())
 	}
 	err = s.orderRepo.CreateBulk(txCtx, (&model.OrderItem{}).ColumnNames(), rows)
@@ -119,24 +115,23 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 		return err
 	}
 
-	orderPayload := map[string]any{
-		"order_id":     orderID,
+	eventPayload := map[string]any{
+		"order_id":     order.ID,
 		"user_id":      userID,
 		"total_amount": totalAmount,
 		"items":        req.Items,
 		"event_time":   time.Now(),
 	}
-	b, _ := json.Marshal(orderPayload)
-	outboxReq := map[string]any{
-		"id":             uuid.NewString(),
-		"aggregate_type": "ORDER",
-		"aggregate_id":   orderID,
-		"event_type":     "order.created",
-		"payload":        b,
-		"status":         string(model.OutboxStatusPending),
-		"created_at":     time.Now(),
+	outbox := model.Outbox{
+		ID:            uuid.NewString(),
+		AggregateType: "ORDER",
+		AggregateID:   order.ID,
+		EventType:     "order.created",
+		Status:        model.OutboxStatusPending,
+		UpdatedAt:     time.Now(),
 	}
-	err = s.outboxRepo.Create(txCtx, outboxReq)
+	outbox.SetPayload(eventPayload)
+	err = s.outboxRepo.Create(txCtx, &outbox)
 	if err != nil {
 		s.log.Error("failed to insert outbox", zap.Error(err))
 		return err
@@ -162,7 +157,7 @@ func (s *service) Get(ctx context.Context, userID, role, orderID string) (*model
 		return nil, err
 	}
 
-	if role != "admin" {
+	if role != "ADMIN" {
 		if order.UserID != userID {
 			s.log.Error("user not allowed to get order", zap.String("order_id", orderID), zap.String("user_id", userID))
 			return nil, errorx.NewError(errorx.ErrTypeValidation, "user not allowed to get order", nil)
@@ -200,13 +195,13 @@ func (s *service) List(ctx context.Context, userID, role string, req *model.List
 	}
 
 	filters["user_id"] = userID
-	if role == "admin" {
+	if role == "ADMIN" {
 		delete(filters, "user_id")
 	}
 
 	orders, count, err := s.orderRepo.List(ctx, uint64(req.PageSize), offset, filters)
 	if err != nil {
-		s.log.Error("failed to get list user", zap.Error(err))
+		s.log.Error("failed to get list order", zap.Error(err))
 		return nil, 0, "", err
 	}
 
@@ -271,17 +266,16 @@ func (s *service) Cancel(ctx context.Context, orderID, userID string) error {
 		"user_id":  order.UserID,
 		"reason":   "canceled order by user",
 	}
-	b, _ := json.Marshal(eventPayload)
-	outboxReq := map[string]any{
-		"id":             uuid.NewString(),
-		"aggregate_type": "ORDER",
-		"aggregate_id":   order.ID,
-		"event_type":     "order.canceled",
-		"payload":        b,
-		"status":         string(model.OutboxStatusPending),
-		"created_at":     time.Now(),
+	outbox := model.Outbox{
+		ID:            uuid.NewString(),
+		AggregateType: "ORDER",
+		AggregateID:   order.ID,
+		EventType:     "order.canceled",
+		Status:        model.OutboxStatusPending,
+		UpdatedAt:     time.Now(),
 	}
-	err = s.outboxRepo.Create(txCtx, outboxReq)
+	outbox.SetPayload(eventPayload)
+	err = s.outboxRepo.Create(txCtx, &outbox)
 	if err != nil {
 		s.log.Error("failed to insert outbox", zap.Error(err))
 		return err
@@ -344,6 +338,8 @@ func (s *service) Update(ctx context.Context, orderID string, status model.Order
 		eventType = "order.delivered"
 	case model.OrderStatusCanceled:
 		eventType = "order.canceled"
+	case model.OrderStatusWaitingPayment:
+		eventType = "order.waiting_payment"
 	}
 
 	if status != model.OrderStatusPending {
@@ -352,17 +348,16 @@ func (s *service) Update(ctx context.Context, orderID string, status model.Order
 			"user_id":  order.UserID,
 			"reason":   reason,
 		}
-		b, _ := json.Marshal(eventPayload)
-		outboxReq := map[string]any{
-			"id":             uuid.NewString(),
-			"aggregate_type": "ORDER",
-			"aggregate_id":   order.ID,
-			"event_type":     eventType,
-			"payload":        b,
-			"status":         string(model.OutboxStatusPending),
-			"created_at":     time.Now(),
+		outbox := model.Outbox{
+			ID:            uuid.NewString(),
+			AggregateType: "ORDER",
+			AggregateID:   order.ID,
+			EventType:     eventType,
+			Status:        model.OutboxStatusPending,
+			UpdatedAt:     time.Now(),
 		}
-		err = s.outboxRepo.Create(txCtx, outboxReq)
+		outbox.SetPayload(eventPayload)
+		err = s.outboxRepo.Create(txCtx, &outbox)
 		if err != nil {
 			s.log.Error("failed to insert outbox", zap.Error(err))
 			return err

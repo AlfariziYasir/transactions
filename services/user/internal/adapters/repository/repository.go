@@ -6,17 +6,33 @@ import (
 	"time"
 
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
+	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
+	"github.com/AlfariziYasir/transactions/common/pkg/redis"
 	"github.com/AlfariziYasir/transactions/services/user/internal/core/model"
-	"github.com/AlfariziYasir/transactions/services/user/utils"
+	"github.com/AlfariziYasir/transactions/services/user/internal/core/ports"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 )
 
+var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+
+type repository struct {
+	db postgres.PgxExecutor
+	redis.Cache
+}
+
+func NewRepository(cache redis.Cache, db postgres.PgxExecutor) ports.Repository {
+	return &repository{
+		db:    db,
+		Cache: cache,
+	}
+}
+
 func (r *repository) Create(ctx context.Context, user *model.User) error {
-	mapData, _ := utils.StructToMap(user)
 	query, args, _ := psql.
-		Insert((&model.User{}).Tablename()).
-		SetMap(mapData).
+		Insert(user.Tablename()).
+		Columns(user.ColumnsName()...).
+		Values(user.ToRow()...).
 		ToSql()
 
 	res, err := r.db.Exec(ctx, query, args...)

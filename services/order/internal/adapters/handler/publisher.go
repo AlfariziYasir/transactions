@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
+	"github.com/AlfariziYasir/transactions/services/order/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
 	"github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
@@ -57,7 +58,7 @@ func (p *publisher) processEvents(ctx context.Context) {
 	}
 
 	for _, e := range events {
-		err := p.channel.PublishWithContext(
+		err = p.channel.PublishWithContext(
 			ctx,
 			"order.events",
 			e.EventType,
@@ -81,7 +82,7 @@ func (p *publisher) processEvents(ctx context.Context) {
 		}
 
 		outboxReq := map[string]any{
-			"status":     "PROCESSED",
+			"status":     string(model.OutboxStatusProcessed),
 			"updated_at": time.Now(),
 		}
 		err = p.outboxRepo.Update(ctx, e.ID, outboxReq)

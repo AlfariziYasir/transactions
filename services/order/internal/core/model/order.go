@@ -9,12 +9,13 @@ import (
 type OrderStatus string
 
 const (
-	OrderStatusPending   OrderStatus = "PENDING"
-	OrderStatusPaid      OrderStatus = "PAID"
-	OrderStatusCanceled  OrderStatus = "CANCELED"
-	OrderStatusFailed    OrderStatus = "FAILED"
-	OrderStatusShipped   OrderStatus = "SHIPPED"
-	OrderStatusDelivered OrderStatus = "DELIVERED"
+	OrderStatusPending        OrderStatus = "PENDING"
+	OrderStatusWaitingPayment OrderStatus = "WAITING_PAYMENT"
+	OrderStatusPaid           OrderStatus = "PAID"
+	OrderStatusCanceled       OrderStatus = "CANCELED"
+	OrderStatusFailed         OrderStatus = "FAILED"
+	OrderStatusShipped        OrderStatus = "SHIPPED"
+	OrderStatusDelivered      OrderStatus = "DELIVERED"
 )
 
 type Order struct {
@@ -29,8 +30,16 @@ type Order struct {
 	DeletedAt       *time.Time      `json:"deleted_at" db:"deleted_at"`
 }
 
-func (Order) TableName() string {
+func (o *Order) TableName() string {
 	return "orders"
+}
+
+func (o *Order) ColumnsNames() []string {
+	return []string{"id", "user_id", "total_amount", "currency", "status", "shipping_address", "created_at", "updated_at", "deleted_at"}
+}
+
+func (o *Order) ToRow() []any {
+	return []any{o.ID, o.UserID, o.TotalAmount, o.Currency, o.Status, o.ShippingAddress, o.CreatedAt, o.UpdatedAt, o.DeletedAt}
 }
 
 type OrderItem struct {
@@ -47,7 +56,7 @@ func (i *OrderItem) TableName() string {
 	return "order_items"
 }
 
-func (OrderItem) ColumnNames() []string {
+func (i *OrderItem) ColumnNames() []string {
 	return []string{"id", "order_id", "product_id", "product_name", "quantity", "price", "subtotal"}
 }
 

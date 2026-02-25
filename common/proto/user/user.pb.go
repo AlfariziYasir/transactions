@@ -29,7 +29,7 @@ type UserRole int32
 
 const (
 	UserRole_UNSPECIFIED UserRole = 0
-	UserRole_CUSTOMER    UserRole = 1
+	UserRole_USER        UserRole = 1
 	UserRole_ADMIN       UserRole = 2
 )
 
@@ -37,12 +37,12 @@ const (
 var (
 	UserRole_name = map[int32]string{
 		0: "UNSPECIFIED",
-		1: "CUSTOMER",
+		1: "USER",
 		2: "ADMIN",
 	}
 	UserRole_value = map[string]int32{
 		"UNSPECIFIED": 0,
-		"CUSTOMER":    1,
+		"USER":        1,
 		"ADMIN":       2,
 	}
 )
@@ -667,10 +667,10 @@ const file_proto_user_user_proto_rawDesc = "" +
 	"\x05users\x18\x01 \x03(\v2\r.user.v1.UserR\x05users\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount*4\n" +
+	"totalCount*0\n" +
 	"\bUserRole\x12\x0f\n" +
-	"\vUNSPECIFIED\x10\x00\x12\f\n" +
-	"\bCUSTOMER\x10\x01\x12\t\n" +
+	"\vUNSPECIFIED\x10\x00\x12\b\n" +
+	"\x04USER\x10\x01\x12\t\n" +
 	"\x05ADMIN\x10\x022\xf4\b\n" +
 	"\vUserService\x12\xa3\x01\n" +
 	"\x05Login\x12\x15.user.v1.LoginRequest\x1a\x16.user.v1.LoginResponse\"k\x92AR\n" +

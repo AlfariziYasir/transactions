@@ -1,14 +1,14 @@
 -- +goose Up
-create table users (
-    id uuid primary key unique not null,
-    name varchar(50) not null,
-    email varchar(100) not null,
-    role varchar(10) not null,
-    password text not null,
-    created_at timestamp default current_timestamp,
-    updated_at timestamp,
-    deleted_at timestamp
-)
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role VARCHAR(10) NOT NULL DEFAULT 'user',
+    password TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
+);
 -- +goose StatementBegin
 SELECT 'up SQL query';
 -- +goose StatementEnd

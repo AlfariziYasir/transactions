@@ -129,7 +129,7 @@ service UserService {
 
 enum UserRole {
   UNSPECIFIED = 0;
-  CUSTOMER = 1;
+  USER = 1;
   ADMIN = 2;
 }
 

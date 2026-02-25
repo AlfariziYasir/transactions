@@ -65,6 +65,12 @@ func (c *orderConsumer) Start() error {
 		return err
 	}
 
+	err = c.ch.ExchangeDeclare("inventory.events", "topic", true, false, false, false, nil)
+	if err != nil {
+		c.log.Error("failed exchange declare", zap.Error(err))
+		return err
+	}
+
 	// setup main queue
 	args := amqp091.Table{
 		"x-dead-letter-exchange":    "order.dlx",
@@ -92,6 +98,12 @@ func (c *orderConsumer) Start() error {
 		return err
 	}
 
+	err = c.ch.QueueBind(q.Name, "inventory.*", "inventory.events", false, nil)
+	if err != nil {
+		c.log.Error("failed queue bind inventory event", zap.Error(err))
+		return err
+	}
+
 	// start consume
 	msgs, err := c.ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
@@ -99,7 +111,7 @@ func (c *orderConsumer) Start() error {
 		return err
 	}
 
-	c.log.Info("order status consumer started, listening for payment & shipment events")
+	c.log.Info("order status consumer started")
 	go c.worker(msgs)
 	return nil
 }
@@ -124,17 +136,19 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	switch msg.RoutingKey {
 	case "payment.success":
 		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusPaid, event.Reason)
-	case "payment.failed":
+	case "payment.failed", "inventory.reserved.failed":
 		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusFailed, event.Reason)
 	case "shipment.shipped":
 		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusShipped, event.Reason)
 	case "shipment.delivered":
 		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusDelivered, event.Reason)
+	case "inventory.reserved.success":
+		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusWaitingPayment, event.Reason)
 	}
 
 	if err != nil {
-		appErr, isAppErr := errors.AsType[*errorx.AppError](err)
-		if isAppErr && appErr.Type == errorx.ErrTypeValidation {
+		appErr, ok := errors.AsType[*errorx.AppError](err)
+		if ok && appErr.Type == errorx.ErrTypeValidation {
 			c.log.Warn("idempotency check / invalid state transition, discarding message",
 				zap.String("routing_key", msg.RoutingKey),
 				zap.Error(err),
@@ -143,7 +157,7 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 			return
 		}
 
-		if isAppErr && appErr.Type == errorx.ErrTypeInternal {
+		if ok && appErr.Type == errorx.ErrTypeInternal {
 			c.log.Error("invalid payload format, routing to DLX", zap.Error(err))
 			msg.Nack(false, false)
 			return

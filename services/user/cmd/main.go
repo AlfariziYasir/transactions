@@ -19,6 +19,7 @@ import (
 	"github.com/AlfariziYasir/transactions/services/user/internal/adapters/handler"
 	"github.com/AlfariziYasir/transactions/services/user/internal/adapters/repository"
 	"github.com/AlfariziYasir/transactions/services/user/internal/core/services"
+	"github.com/AlfariziYasir/transactions/services/user/migrations"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -47,6 +48,11 @@ func main() {
 	}
 	defer pg.Close()
 
+	err = migrations.RunMigrations(cfg.DbDsn)
+	if err != nil {
+		l.Logger.Fatal("failed to run migrations", zap.Error(err))
+	}
+
 	rds, err := redis.NewRedisCache(cfg.RedisAddress, cfg.RedisPassword, cfg.RedisDB)
 	if err != nil {
 		l.Fatal("failed connect to redis", zap.Error(err))
@@ -60,7 +66,7 @@ func main() {
 	authInterceptor := middleware.NewAuthInterceptor(l, rds)
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			authInterceptor.Unary(cfg.AccessTokenKey),
+			authInterceptor.Unary(cfg.AccessTokenKey, cfg.RefreshTokenKey),
 		),
 	)
 

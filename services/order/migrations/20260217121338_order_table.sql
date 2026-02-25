@@ -1,45 +1,45 @@
 -- +goose Up
-create table orders (
-    id uuid primary key not null unique,
-    user_id uuid not null,
-    total_amount decimal(15,2) not null,
-    currency varchar(3) default 'IDR',
-    status varchar(20) not null,
-    shipping_address text not null,
-    created_at timestamp default current_timestamp,
-    updated_at timestamp default current_timestamp,
-    version int default 1
+CREATE TABLE orders (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    total_amount DECIMAL(15,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'IDR',
+    status VARCHAR(20) NOT NULL,
+    shipping_address TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    version INT DEFAULT 1
 );
-create index orders_idx on orders(id, user_id);
+CREATE INDEX idx_orders_user_id ON orders(user_id);
 
-create table order_items (
-    id uuid primary key not null unique,
-    order_id uuid references orders(id),
-    product_id uuid not null,
-    product_name varchar(255) not null,
-    quantity int not null,
-    price decimal(15,2) not null,
-    subtotal decimal(15,2) not null
+CREATE TABLE order_items (
+    id UUID PRIMARY KEY,
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(15,2) NOT NULL,
+    subtotal DECIMAL(15,2) NOT NULL
 );
-create index order_item_idx on order_items(id, order_id);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 
-create table outbox (
-    id uuid primary key,
-    aggregate_type varchar(50) not null,
-    aggregate_id uuid not null,
-    event_type varchar(50) not null,
-    payload jsonb not null,
-    status varchar(20) default 'PENDING',
-    created_at timestamp default current_timestamp
+CREATE TABLE product_replicas (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(15,2) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_updated TIMESTAMP NOT NULL,
+    version INT
 );
 
-create table product_replicas (
-    id uuid primary key not null unique,
-    name varchar(255) not null,
-    price decimal(15,2) not null,
-    is_active boolean default true,
-    last_updated timestamp not null,
-    version int
+CREATE TABLE outbox (
+    id UUID PRIMARY KEY,
+    aggregate_type VARCHAR(50) NOT NULL,
+    aggregate_id UUID NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    payload JSONB NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 -- +goose StatementBegin
 SELECT 'up SQL query';

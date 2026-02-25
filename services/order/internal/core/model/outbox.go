@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type OutboxStatus string
 
@@ -21,6 +24,23 @@ type Outbox struct {
 	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
 }
 
-func (Outbox) TableName() string {
+func (o *Outbox) TableName() string {
 	return "outbox"
+}
+
+func (o *Outbox) ToRow() []any {
+	return []any{o.ID, o.AggregateType, o.AggregateID, o.EventType, o.Payload, o.Status, o.CreatedAt, o.UpdatedAt}
+}
+
+func (o *Outbox) ColumnsNames() []string {
+	return []string{"id", "aggregate_type", "aggregate_id", "event_type", "payload", "status", "created_at", "updated_at"}
+}
+
+func (o *Outbox) SetPayload(data any) error {
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	o.Payload = bytes
+	return nil
 }

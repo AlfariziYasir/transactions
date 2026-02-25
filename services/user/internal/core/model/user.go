@@ -21,6 +21,14 @@ func (u *User) Tablename() string {
 	return "users"
 }
 
+func (u *User) ColumnsName() []string {
+	return []string{"id", "name", "email", "password", "role", "created_at", "updated_at", "deleted_at"}
+}
+
+func (u *User) ToRow() []any {
+	return []any{u.ID, u.Name, u.Email, u.Password, u.Role, u.CreatedAt, u.UpdatedAt, u.DeletedAt}
+}
+
 type UserRequest struct {
 	UserId   string
 	Name     string

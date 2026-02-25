@@ -219,7 +219,7 @@ func (s *userService) List(ctx context.Context, req model.ListRequest) ([]model.
 	}
 
 	filters := make(map[string]any)
-	if req.Role != "admin" {
+	if req.Role != "ADMIN" {
 		filters["role"] = req.Role
 	}
 

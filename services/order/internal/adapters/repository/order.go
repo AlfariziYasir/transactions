@@ -34,17 +34,20 @@ func (r *orderRepo) getExecutor(ctx context.Context) postgres.PgxExecutor {
 	return r.db
 }
 
-func (r *orderRepo) Create(ctx context.Context, data map[string]any) error {
+func (r *orderRepo) Create(ctx context.Context, order *model.Order) error {
 	query, args, _ := psql.
 		Insert((&model.Order{}).TableName()).
-		SetMap(data).
-		Suffix("returning id").
+		Columns(order.ColumnsNames()...).
+		Values(order.ToRow()...).
 		ToSql()
 
-	var id string
-	err := r.getExecutor(ctx).QueryRow(ctx, query, args...).Scan(&id)
+	res, err := r.getExecutor(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		return errorx.DbError(err, err.Error())
+	}
+
+	if res.RowsAffected() == 0 {
+		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
 	}
 
 	return nil

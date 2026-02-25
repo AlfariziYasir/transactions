@@ -7,7 +7,7 @@ import (
 )
 
 type OrderRepo interface {
-	Create(ctx context.Context, data map[string]any) error
+	Create(ctx context.Context, order *model.Order) error
 	CreateBulk(ctx context.Context, columns []string, rows [][]any) error
 	Get(ctx context.Context, filters map[string]any, order *model.Order) error
 	GetDetail(ctx context.Context, orderID string) ([]*model.OrderItem, error)
@@ -22,7 +22,7 @@ type ProductRepo interface {
 }
 
 type OutboxRepo interface {
-	Create(ctx context.Context, data map[string]any) error
+	Create(ctx context.Context, outbox *model.Outbox) error
 	Get(ctx context.Context, limit uint64) ([]*model.Outbox, error)
 	Update(ctx context.Context, id string, data map[string]any) error
 }
