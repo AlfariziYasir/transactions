@@ -20,11 +20,14 @@ CREATE TABLE stocks (
     CONSTRAINT chk_stock_quantity CHECK (quantity >= 0),
     CONSTRAINT chk_stock_reserved CHECK (reserved_quantity >= 0)
 );
+
+-- +goose StatementBegin
 DO $$ BEGIN
     CREATE TYPE stock_log_type AS ENUM ('INCOMING', 'OUTGOING', 'RESERVE', 'RELEASE', 'ADJUSTMENT');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+-- +goose StatementEnd
 
 CREATE TABLE stock_logs (
     id UUID PRIMARY KEY,
@@ -35,8 +38,8 @@ CREATE TABLE stock_logs (
     reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_stock_logs_product ON stock_logs(product_id);
 
+CREATE INDEX idx_stock_logs_product ON stock_logs(product_id);
 
 CREATE TABLE outbox (
     id UUID PRIMARY KEY,
@@ -47,10 +50,6 @@ CREATE TABLE outbox (
     status VARCHAR(20) DEFAULT 'PENDING',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
--- +goose StatementBegin
-SELECT 'up SQL query';
--- +goose StatementEnd
-
 -- +goose Down
 -- +goose StatementBegin
 SELECT 'down SQL query';

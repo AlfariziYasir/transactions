@@ -34,7 +34,7 @@ func NewStockConsumer(
 
 func (c *stockConsumer) Start() error {
 	// setup dead letter exchange
-	err := c.ch.ExchangeDeclare("order.dlx", "direct", true, false, false, false, nil)
+	err := c.ch.ExchangeDeclare("inventory.dlx", "direct", true, false, false, false, nil)
 	if err != nil {
 		c.log.Error("failed exchange declare", zap.Error(err))
 		return err

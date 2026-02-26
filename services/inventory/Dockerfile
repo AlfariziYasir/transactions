@@ -21,13 +21,11 @@ RUN go work sync
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/inventory ./services/inventory/cmd/main.go
 
-FROM --platform=linux/amd64 alpine:latest
+FROM alpine:latest
 WORKDIR /app
 
 RUN apk --no-cache add ca-certificates tzdata
 
 COPY --from=builder /app/inventory .
-
-RUN chmod +x ./inventory
 
 CMD ["./inventory"]
