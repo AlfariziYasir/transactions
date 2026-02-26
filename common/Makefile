@@ -16,6 +16,7 @@ user-proto:
 		--openapiv2_out=./docs --openapiv2_opt=logtostderr=true,allow_merge=true,merge_file_name=user_api \
 		$(PROTO_USER_DIR)/user.proto
 
+	cp docs/user_api.swagger.json ../services/user/cmd/user_api.swagger.json
 .PHONY: user-proto
 
 order-proto:
@@ -29,6 +30,7 @@ order-proto:
 		--openapiv2_out=./docs --openapiv2_opt=logtostderr=true,allow_merge=true,merge_file_name=order_api \
 		$(PROTO_ORDER_DIR)/order.proto
 
+	cp docs/order_api.swagger.json ../services/order/cmd/order_api.swagger.json
 .PHONY: order-proto
 
 inventory-proto:
@@ -42,4 +44,5 @@ inventory-proto:
 		--openapiv2_out=./docs --openapiv2_opt=logtostderr=true,allow_merge=true,merge_file_name=inventory_api \
 		$(PROTO_INVENTORY_DIR)/inventory.proto
 
+	cp docs/inventory_api.swagger.json ../services/inventory/cmd/inventory_api.swagger.json
 .PHONY: inventory-proto
