@@ -2,27 +2,36 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
-	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/AlfariziYasir/transactions/common/pkg/httpx"
+	grpcserver "github.com/AlfariziYasir/transactions/common/pkg/grpc-server"
+	httpserver "github.com/AlfariziYasir/transactions/common/pkg/http-server"
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
 	"github.com/AlfariziYasir/transactions/common/pkg/middleware"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
 	"github.com/AlfariziYasir/transactions/common/pkg/redis"
+	"github.com/AlfariziYasir/transactions/common/proto/inventory"
 	"github.com/AlfariziYasir/transactions/common/proto/user"
 	"github.com/AlfariziYasir/transactions/services/user/config"
 	"github.com/AlfariziYasir/transactions/services/user/internal/adapters/handler"
 	"github.com/AlfariziYasir/transactions/services/user/internal/adapters/repository"
 	"github.com/AlfariziYasir/transactions/services/user/internal/core/services"
 	"github.com/AlfariziYasir/transactions/services/user/migrations"
+	"github.com/flowchartsman/swaggerui"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+//go:embed user_api.swagger.json
+var spec []byte
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -64,53 +73,63 @@ func main() {
 	userHandler := handler.NewHandler(l, svc)
 
 	authInterceptor := middleware.NewAuthInterceptor(l, rds)
-	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(
+	serverOptions := []grpc.ServerOption{
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			authInterceptor.Unary(cfg.AccessTokenKey, cfg.RefreshTokenKey),
-		),
-	)
+		)),
+	}
 
-	errChan := make(chan error, 1)
-	go func() {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GrpcPort))
-		if err != nil {
-			errChan <- err
+	// start grpc server
+	grpcServer, err := grpcserver.New(uint32(cfg.GrpcPort), serverOptions...)
+	if err != nil {
+		l.Fatal("failed to create new gateway grpc server", zap.Error(err))
+		return
+	}
+	defer grpcServer.Shutdown()
+
+	user.RegisterUserServiceServer(grpcServer.Server, userHandler)
+	if err = grpcServer.Start(); err != nil {
+		l.Fatal("failed to start gateway grpcServer", zap.Error(err))
+		return
+	}
+	l.Info("GRPC server started")
+
+	// start http server
+	httpMux := http.NewServeMux()
+	gwmux := grpcserver.RuntimeServer()
+	err = user.RegisterUserServiceHandlerFromEndpoint(
+		ctx,
+		gwmux,
+		fmt.Sprintf("%s:%d", cfg.GrpcHost, cfg.GrpcPort),
+		[]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
+	)
+	if err != nil {
+		l.Fatal("failed to register api gateway handler from endpoint", zap.Error(err))
+		return
+	}
+
+	httpMux.Handle("/docs/", http.StripPrefix("/docs", swaggerui.Handler(spec)))
+	httpMux.Handle("/", gwmux)
+	httpServer := httpserver.New(httpserver.AllowCors(httpMux))
+
+	go httpServer.Start()
+	defer func() {
+		if err = httpServer.Shutdown(); err != nil {
+			l.Fatal("failed to shutdown http server", zap.Error(err))
 			return
 		}
-
-		user.RegisterUserServiceServer(grpcServer, userHandler)
-		l.Info("grpc server starting", zap.Int("port", cfg.GrpcPort))
-		err = grpcServer.Serve(lis)
-		if err != nil {
-			errChan <- err
-
-		}
 	}()
+	l.Info("HTTP server started")
 
-	go func() {
-		err := httpx.RunGateway(
-			ctx,
-			cfg.GrpcPort,
-			cfg.HtppPort,
-			l,
-			user.RegisterUserServiceHandlerFromEndpoint,
-			cfg.SwaggerPath,
-		)
-		if err != nil {
-			errChan <- err
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
+	// Waiting signal
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 	select {
-	case <-quit:
-		l.Info("shutting down servers")
-		cancel()
-		grpcServer.GracefulStop()
-		l.Info("server stopped safely")
-	case err := <-errChan:
-		l.Fatal("server error", zap.Error(err))
+	case s := <-interrupt:
+		l.Info("app - Run - signal", zap.String("signal", s.String()))
+	case err = <-grpcServer.Notify():
+		l.Error("app - Run - grpcServer.Notify", zap.Error(err))
+	case err = <-httpServer.Notify():
+		l.Error("app - Run - httpServer.Notify", zap.Error(err))
 	}
 }

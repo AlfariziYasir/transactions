@@ -21,7 +21,7 @@ RUN go work sync
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/user ./services/user/cmd/main.go
 
-FROM --platform=linux/amd64 alpine:latest
+FROM alpine:latest
 WORKDIR /app
 
 RUN apk --no-cache add ca-certificates tzdata
