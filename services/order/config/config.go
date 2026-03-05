@@ -12,7 +12,7 @@ type Config struct {
 	Version         string `env:"APP_VERSION"`
 	GrpcPort        int    `env:"GRPC_PORT"`
 	GrpcHost        string `env:"GRPC_HOST"`
-	HtppPort        int    `env:"HTTP_PORT"`
+	HttpPort        int    `env:"HTTP_PORT"`
 	AccessTokenKey  string `env:"ACCESS_TOKEN_KEY"`
 	RefreshTokenKey string `env:"REFRESH_TOKEN_KEY"`
 	DbDsn           string `env:"DB_DSN"`

@@ -25,11 +25,11 @@ import (
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/services"
 	"github.com/AlfariziYasir/transactions/services/order/migrations"
 	"github.com/flowchartsman/swaggerui"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 //go:embed order_api.swagger.json
@@ -93,12 +93,14 @@ func main() {
 	orderRepo := repository.NewOrderRepo(pg.Pool)
 	productRepo := repository.NewProductRepo(pg.Pool)
 	outboxRepo := repository.NewOutboxRepo(pg.Pool)
+	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
 	svc := services.NewServices(
 		orderRepo,
 		productRepo,
 		outboxRepo,
+		inboxRepo,
 		l,
 		trx,
 	)
@@ -110,11 +112,13 @@ func main() {
 	}
 	defer productCh.Close()
 
-	err = handler.NewProductConsumer(productRepo, l, productCh).Start()
-	if err != nil {
-		l.Fatal("failed to start product consumer", zap.Error(err))
-		return
-	}
+	go func() {
+		err = handler.NewProductConsumer(productRepo, inboxRepo, l, productCh, trx).Start()
+		if err != nil {
+			l.Fatal("failed to start product consumer", zap.Error(err))
+			return
+		}
+	}()
 
 	orderCh, err := rmqConn.Channel()
 	if err != nil {
@@ -123,7 +127,7 @@ func main() {
 	}
 	defer orderCh.Close()
 
-	err = handler.NewOrderConsumer(svc, l, orderCh).Start()
+	err = handler.NewOrderConsumer(svc, inboxRepo, l, orderCh).Start()
 	if err != nil {
 		l.Fatal("failed to start order consumer", zap.Error(err))
 		return
@@ -136,15 +140,19 @@ func main() {
 	}
 	defer outboxCh.Close()
 
-	go handler.NewPublisher(outboxRepo, outboxCh, l).Start(ctx)
+	pub, err := handler.NewPublisher(outboxRepo, outboxCh, l)
+	if err != nil {
+		l.Fatal("failed start publisher", zap.Error(err))
+		return
+	}
+	go pub.Start(ctx)
 
 	orderHandler := handler.NewHandler(svc, l)
-
 	authInterceptor := middleware.NewAuthInterceptor(l, rds)
 	serverOptions := []grpc.ServerOption{
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+		grpc.UnaryInterceptor(
 			authInterceptor.Unary(cfg.AccessTokenKey, cfg.RefreshTokenKey),
-		)),
+		),
 	}
 
 	// start grpc server
@@ -156,6 +164,7 @@ func main() {
 	defer grpcServer.Shutdown()
 
 	order.RegisterOrderServiceServer(grpcServer.Server, orderHandler)
+	reflection.Register(grpcServer.Server)
 	if err = grpcServer.Start(); err != nil {
 		l.Fatal("failed to start gateway grpcServer", zap.Error(err))
 		return
@@ -178,7 +187,13 @@ func main() {
 
 	httpMux.Handle("/docs/", http.StripPrefix("/docs", swaggerui.Handler(spec)))
 	httpMux.Handle("/", gwmux)
-	httpServer := httpserver.New(httpserver.AllowCors(httpMux))
+	httpServer := httpserver.New(
+		httpserver.AllowCors(httpMux),
+		httpserver.Port(fmt.Sprintf("%d", cfg.HttpPort)),
+		httpserver.ReadTimeout(10*time.Second),
+		httpserver.WriteTimeout(10*time.Second),
+		httpserver.ShutdownTimeout(5*time.Second),
+	)
 
 	go httpServer.Start()
 	defer func() {
@@ -200,4 +215,10 @@ func main() {
 	case err = <-httpServer.Notify():
 		l.Error("app - Run - httpServer.Notify", zap.Error(err))
 	}
+
+	l.Info("shutting down servers...")
+	grpcServer.Shutdown()
+	httpServer.Shutdown()
+	cancel()
+	l.Info("server exited properly")
 }

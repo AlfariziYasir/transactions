@@ -19,7 +19,7 @@ COPY services/inventory/ services/inventory/
 
 RUN go work sync
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/inventory ./services/inventory/cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/inventory ./services/inventory/cmd/main.go
 
 FROM alpine:latest
 WORKDIR /app

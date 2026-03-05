@@ -33,7 +33,7 @@ func (r *outboxRepo) getExecutor(ctx context.Context) postgres.PgxExecutor {
 func (r *outboxRepo) Create(ctx context.Context, outbox *model.Outbox) error {
 	query, args, _ := psql.
 		Insert((&model.Outbox{}).TableName()).
-		Columns(outbox.ColumnsNames()...).
+		Columns(outbox.Columns()...).
 		Values(outbox.ToRow()...).
 		ToSql()
 

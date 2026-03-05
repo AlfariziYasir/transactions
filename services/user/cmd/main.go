@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	grpcserver "github.com/AlfariziYasir/transactions/common/pkg/grpc-server"
 	httpserver "github.com/AlfariziYasir/transactions/common/pkg/http-server"
@@ -16,7 +17,6 @@ import (
 	"github.com/AlfariziYasir/transactions/common/pkg/middleware"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
 	"github.com/AlfariziYasir/transactions/common/pkg/redis"
-	"github.com/AlfariziYasir/transactions/common/proto/inventory"
 	"github.com/AlfariziYasir/transactions/common/proto/user"
 	"github.com/AlfariziYasir/transactions/services/user/config"
 	"github.com/AlfariziYasir/transactions/services/user/internal/adapters/handler"
@@ -24,7 +24,6 @@ import (
 	"github.com/AlfariziYasir/transactions/services/user/internal/core/services"
 	"github.com/AlfariziYasir/transactions/services/user/migrations"
 	"github.com/flowchartsman/swaggerui"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -68,15 +67,15 @@ func main() {
 		return
 	}
 
-	repo := repository.NewRepository(rds, pg.Pool)
+	repo := repository.NewRepository(pg.Pool)
 	svc := services.NewUserService(cfg, l, repo, rds)
 	userHandler := handler.NewHandler(l, svc)
 
 	authInterceptor := middleware.NewAuthInterceptor(l, rds)
 	serverOptions := []grpc.ServerOption{
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+		grpc.UnaryInterceptor(
 			authInterceptor.Unary(cfg.AccessTokenKey, cfg.RefreshTokenKey),
-		)),
+		),
 	}
 
 	// start grpc server
@@ -110,7 +109,13 @@ func main() {
 
 	httpMux.Handle("/docs/", http.StripPrefix("/docs", swaggerui.Handler(spec)))
 	httpMux.Handle("/", gwmux)
-	httpServer := httpserver.New(httpserver.AllowCors(httpMux))
+	httpServer := httpserver.New(
+		httpserver.AllowCors(httpMux),
+		httpserver.Port(fmt.Sprintf("%d", cfg.HttpPort)),
+		httpserver.ReadTimeout(10*time.Second),
+		httpserver.WriteTimeout(10*time.Second),
+		httpserver.ShutdownTimeout(5*time.Second),
+	)
 
 	go httpServer.Start()
 	defer func() {
@@ -132,4 +137,10 @@ func main() {
 	case err = <-httpServer.Notify():
 		l.Error("app - Run - httpServer.Notify", zap.Error(err))
 	}
+
+	l.Info("shutting down servers...")
+	grpcServer.Shutdown()
+	httpServer.Shutdown()
+	cancel()
+	l.Info("server exited properly")
 }

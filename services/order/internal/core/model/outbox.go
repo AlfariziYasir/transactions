@@ -32,7 +32,7 @@ func (o *Outbox) ToRow() []any {
 	return []any{o.ID, o.AggregateType, o.AggregateID, o.EventType, o.Payload, o.Status, o.CreatedAt, o.UpdatedAt}
 }
 
-func (o *Outbox) ColumnsNames() []string {
+func (o *Outbox) Columns() []string {
 	return []string{"id", "aggregate_type", "aggregate_id", "event_type", "payload", "status", "created_at", "updated_at"}
 }
 

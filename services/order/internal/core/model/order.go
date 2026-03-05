@@ -34,7 +34,7 @@ func (o *Order) TableName() string {
 	return "orders"
 }
 
-func (o *Order) ColumnsNames() []string {
+func (o *Order) Columns() []string {
 	return []string{"id", "user_id", "total_amount", "currency", "status", "shipping_address", "created_at", "updated_at", "deleted_at"}
 }
 
@@ -96,4 +96,12 @@ type OrderConsumer struct {
 	OrderID string `json:"order_id"`
 	Status  string `json:"status"`
 	Reason  string `json:"reason"`
+}
+
+type UpdateStatusOrder struct {
+	MessageID string
+	EventName string
+	OrderID   string
+	Reason    string
+	Status    OrderStatus
 }

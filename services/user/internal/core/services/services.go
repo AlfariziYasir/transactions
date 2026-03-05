@@ -90,7 +90,16 @@ func (s *userService) Login(ctx context.Context, req model.UserRequest) (string,
 }
 
 func (s *userService) Logout(ctx context.Context, accUuid, refUuid string) error {
-	err := s.cache.Set(
+	err := s.cache.Delete(
+		ctx,
+		fmt.Sprintf("%s:%s", auth.RefKey, refUuid),
+	)
+	if err != nil {
+		s.log.Error("failed to delete auth", zap.Error(err))
+		return errorx.NewError(errorx.ErrTypeInternal, "failed to delete auth", err)
+	}
+
+	err = s.cache.Set(
 		ctx,
 		fmt.Sprintf("%s:%s", auth.BlacklistKey, accUuid),
 		"revoked",
@@ -99,15 +108,6 @@ func (s *userService) Logout(ctx context.Context, accUuid, refUuid string) error
 	if err != nil {
 		s.log.Error("failed to store refresh auth", zap.Error(err))
 		return errorx.NewError(errorx.ErrTypeInternal, "failed to store refresh auth", err)
-	}
-
-	err = s.cache.Delete(
-		ctx,
-		fmt.Sprintf("%s:%s", auth.RefKey, refUuid),
-	)
-	if err != nil {
-		s.log.Error("failed to delete auth", zap.Error(err))
-		return errorx.NewError(errorx.ErrTypeInternal, "failed to delete auth", err)
 	}
 
 	return nil
@@ -270,17 +270,18 @@ func (s *userService) Update(ctx context.Context, req model.UserRequest) (*model
 
 	if user.Email != req.Email {
 		err := s.repo.Get(ctx, map[string]any{"email": req.Email}, true, &user)
-		if err != nil {
+		if err == nil {
 			s.log.Warn("email update conflict", zap.String("email", req.Email))
 			return nil, errorx.NewError(errorx.ErrTypeConflict, "email already taken", nil)
 		}
 	}
 
+	now := time.Now()
 	dataUpdate := map[string]any{
 		"name":       req.Name,
 		"email":      req.Email,
 		"role":       req.Role,
-		"updated_at": time.Now(),
+		"updated_at": now,
 	}
 	err = s.repo.Update(ctx, user.ID, dataUpdate)
 	if err != nil {
@@ -289,12 +290,12 @@ func (s *userService) Update(ctx context.Context, req model.UserRequest) (*model
 
 	return &model.UserResponse{
 		UserId:    user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Role:      user.Role,
+		Name:      req.Name,
+		Email:     req.Email,
+		Role:      req.Role,
 		IsActive:  true,
 		CreatedAt: user.CreatedAt.Time,
-		UpdatedAt: user.UpdatedAt.Time,
+		UpdatedAt: now,
 	}, nil
 }
 

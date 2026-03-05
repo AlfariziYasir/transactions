@@ -22,6 +22,7 @@ type service struct {
 	orderRepo   ports.OrderRepo
 	productRepo ports.ProductRepo
 	outboxRepo  ports.OutboxRepo
+	inboxRepo   ports.InboxRepo
 	trx         postgres.Trx
 	log         *logger.Logger
 }
@@ -30,6 +31,7 @@ func NewServices(
 	orderRepo ports.OrderRepo,
 	productRepo ports.ProductRepo,
 	outboxRepo ports.OutboxRepo,
+	inboxRepo ports.InboxRepo,
 	log *logger.Logger,
 	trx postgres.Trx,
 ) ports.OrderService {
@@ -37,6 +39,7 @@ func NewServices(
 		orderRepo:   orderRepo,
 		productRepo: productRepo,
 		outboxRepo:  outboxRepo,
+		inboxRepo:   inboxRepo,
 		log:         log,
 		trx:         trx,
 	}
@@ -182,6 +185,7 @@ func (s *service) Get(ctx context.Context, userID, role, orderID string) (*model
 		Items:           items,
 	}, nil
 }
+
 func (s *service) List(ctx context.Context, userID, role string, req *model.ListRequest) ([]model.OrderResponse, int, string, error) {
 	var offset uint64 = 0
 	if req.PageToken != "" {
@@ -290,24 +294,8 @@ func (s *service) Cancel(ctx context.Context, orderID, userID string) error {
 	return nil
 }
 
-func (s *service) Update(ctx context.Context, orderID string, status model.OrderStatus, reason string) error {
-	var order model.Order
-	filters := map[string]any{
-		"id": orderID,
-	}
-	err := s.orderRepo.Get(ctx, filters, &order)
-	if err != nil {
-		s.log.Error("failed to get order by id and user_id", zap.Error(err))
-		return err
-	}
-
-	if !s.statusValidation(order.Status, status) {
-		return errorx.NewError(
-			errorx.ErrTypeValidation,
-			fmt.Sprintf("invalid status transition from %s to %s", order.Status, status),
-			nil,
-		)
-	}
+func (s *service) Update(ctx context.Context, req *model.UpdateStatusOrder) error {
+	now := time.Now()
 
 	txCtx, err := s.trx.Begin(ctx)
 	if err != nil {
@@ -316,9 +304,44 @@ func (s *service) Update(ctx context.Context, orderID string, status model.Order
 	}
 	defer s.trx.Rollback(txCtx)
 
+	inbox := model.Inbox{
+		ID:          uuid.NewString(),
+		MessageID:   req.MessageID,
+		EventName:   req.EventName,
+		ProcessedAt: now,
+	}
+	inserted, err := s.inboxRepo.Create(txCtx, &inbox)
+	if err != nil {
+		s.log.Error("failed to create inbox", zap.Error(err))
+		return err
+	}
+
+	if !inserted {
+		s.log.Info("message already processed", zap.String("id", req.MessageID))
+		return nil
+	}
+
+	var order model.Order
+	filters := map[string]any{
+		"id": req.OrderID,
+	}
+	err = s.orderRepo.Get(txCtx, filters, &order)
+	if err != nil {
+		s.log.Error("failed to get order by id and user_id", zap.Error(err))
+		return err
+	}
+
+	if !s.statusValidation(order.Status, req.Status) {
+		return errorx.NewError(
+			errorx.ErrTypeValidation,
+			fmt.Sprintf("invalid status transition from %s to %s", order.Status, req.Status),
+			nil,
+		)
+	}
+
 	orderReq := map[string]any{
-		"status":     string(status),
-		"updated_at": time.Now(),
+		"status":     string(req.Status),
+		"updated_at": now,
 	}
 	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
 	if err != nil {
@@ -327,7 +350,7 @@ func (s *service) Update(ctx context.Context, orderID string, status model.Order
 	}
 
 	var eventType string
-	switch status {
+	switch req.Status {
 	case model.OrderStatusPaid:
 		eventType = "order.paid"
 	case model.OrderStatusFailed:
@@ -342,11 +365,11 @@ func (s *service) Update(ctx context.Context, orderID string, status model.Order
 		eventType = "order.waiting_payment"
 	}
 
-	if status != model.OrderStatusPending {
+	if req.Status != model.OrderStatusPending {
 		eventPayload := map[string]any{
 			"order_id": order.ID,
 			"user_id":  order.UserID,
-			"reason":   reason,
+			"reason":   req.Reason,
 		}
 		outbox := model.Outbox{
 			ID:            uuid.NewString(),
@@ -354,7 +377,7 @@ func (s *service) Update(ctx context.Context, orderID string, status model.Order
 			AggregateID:   order.ID,
 			EventType:     eventType,
 			Status:        model.OutboxStatusPending,
-			UpdatedAt:     time.Now(),
+			UpdatedAt:     now,
 		}
 		outbox.SetPayload(eventPayload)
 		err = s.outboxRepo.Create(txCtx, &outbox)

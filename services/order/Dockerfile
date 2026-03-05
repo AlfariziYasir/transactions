@@ -19,7 +19,7 @@ COPY services/order/ services/order/
 
 RUN go work sync
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/order ./services/order/cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/order ./services/order/cmd/main.go
 
 FROM alpine:latest
 WORKDIR /app

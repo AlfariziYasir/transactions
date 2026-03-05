@@ -11,5 +11,5 @@ type OrderService interface {
 	Get(ctx context.Context, userID, role, orderID string) (*model.OrderResponse, error)
 	List(ctx context.Context, userID, role string, req *model.ListRequest) ([]model.OrderResponse, int, string, error)
 	Cancel(ctx context.Context, orderID, userID string) error
-	Update(ctx context.Context, orderID string, status model.OrderStatus, reason string) error
+	Update(ctx context.Context, req *model.UpdateStatusOrder) error
 }

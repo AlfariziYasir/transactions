@@ -25,11 +25,11 @@ import (
 	"github.com/AlfariziYasir/transactions/services/inventory/internal/core/services"
 	"github.com/AlfariziYasir/transactions/services/inventory/migrations"
 	"github.com/flowchartsman/swaggerui"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 //go:embed inventory_api.swagger.json
@@ -95,19 +95,8 @@ func main() {
 	outboxRepo := repository.NewOutboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
-	productSvc := services.NewProductServices(
-		productRepo,
-		outboxRepo,
-		trx,
-		l,
-	)
-
-	stockSvc := services.NewStockService(
-		stockRepo,
-		outboxRepo,
-		trx,
-		l,
-	)
+	productSvc := services.NewProductServices(productRepo, outboxRepo, trx, l)
+	stockSvc := services.NewStockService(stockRepo, outboxRepo, trx, l)
 
 	consumerCh, err := rmqConn.Channel()
 	if err != nil {
@@ -116,11 +105,13 @@ func main() {
 	}
 	defer consumerCh.Close()
 
-	err = handler.NewStockConsumer(stockSvc, consumerCh, l).Start()
-	if err != nil {
-		l.Fatal("failed to start inventory consumer", zap.Error(err))
-		return
-	}
+	go func() {
+		err = handler.NewStockConsumer(stockSvc, consumerCh, l).Start()
+		if err != nil {
+			l.Fatal("failed to start inventory consumer", zap.Error(err))
+			return
+		}
+	}()
 
 	publisherCh, err := rmqConn.Channel()
 	if err != nil {
@@ -134,9 +125,9 @@ func main() {
 	inventoryHandler := handler.NewHandler(productSvc, stockSvc, l)
 	authInterceptor := middleware.NewAuthInterceptor(l, rds)
 	serverOptions := []grpc.ServerOption{
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+		grpc.UnaryInterceptor(
 			authInterceptor.Unary(cfg.AccessTokenKey, cfg.RefreshTokenKey),
-		)),
+		),
 	}
 
 	// start grpc server
@@ -148,6 +139,7 @@ func main() {
 	defer grpcServer.Shutdown()
 
 	inventory.RegisterInventoryServiceServer(grpcServer.Server, inventoryHandler)
+	reflection.Register(grpcServer.Server)
 	if err = grpcServer.Start(); err != nil {
 		l.Fatal("failed to start gateway grpcServer", zap.Error(err))
 		return
@@ -155,7 +147,6 @@ func main() {
 	l.Info("GRPC server started")
 
 	// start http server
-	httpMux := http.NewServeMux()
 	gwmux := grpcserver.RuntimeServer()
 	err = inventory.RegisterInventoryServiceHandlerFromEndpoint(
 		ctx,
@@ -168,9 +159,16 @@ func main() {
 		return
 	}
 
+	httpMux := http.NewServeMux()
 	httpMux.Handle("/docs/", http.StripPrefix("/docs", swaggerui.Handler(spec)))
 	httpMux.Handle("/", gwmux)
-	httpServer := httpserver.New(httpserver.AllowCors(httpMux))
+	httpServer := httpserver.New(
+		httpserver.AllowCors(httpMux),
+		httpserver.Port(fmt.Sprintf("%d", cfg.HtpPort)),
+		httpserver.ReadTimeout(10*time.Second),
+		httpserver.WriteTimeout(10*time.Second),
+		httpserver.ShutdownTimeout(5*time.Second),
+	)
 
 	go httpServer.Start()
 	defer func() {
@@ -192,4 +190,10 @@ func main() {
 	case err = <-httpServer.Notify():
 		l.Error("app - Run - httpServer.Notify", zap.Error(err))
 	}
+
+	l.Info("shutting down servers...")
+	grpcServer.Shutdown()
+	httpServer.Shutdown()
+	cancel()
+	l.Info("server exited properly")
 }

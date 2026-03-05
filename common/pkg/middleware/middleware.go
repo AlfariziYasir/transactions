@@ -35,8 +35,8 @@ func NewAuthInterceptor(
 		log:   log,
 		cache: cache,
 		publicMethod: map[string]bool{
-			"/user_service.v1.UserService/Login":  true,
-			"/user_service.v1.UserService/Create": true,
+			"/user.v1.UserService/Login":  true,
+			"/user.v1.UserService/Create": true,
 		},
 		accessibleRoles: map[string][]string{
 			"/user.v1.UserService/Refresh":                     {RoleAdmin, RoleUser},
@@ -63,6 +63,8 @@ func NewAuthInterceptor(
 
 func (i *AuthInterceptor) Unary(accKey, refKey string) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		i.log.Info("grpc method incoming", zap.String("method", info.FullMethod))
+
 		if i.publicMethod[info.FullMethod] {
 			return handler(ctx, req)
 		}

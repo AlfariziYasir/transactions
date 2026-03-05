@@ -15,20 +15,23 @@ import (
 )
 
 type orderConsumer struct {
-	svc ports.OrderService
-	log *logger.Logger
-	ch  *amqp091.Channel
+	svc       ports.OrderService
+	inboxRepo ports.InboxRepo
+	log       *logger.Logger
+	ch        *amqp091.Channel
 }
 
 func NewOrderConsumer(
 	svc ports.OrderService,
+	inboxRepo ports.InboxRepo,
 	log *logger.Logger,
 	channel *amqp091.Channel,
 ) *orderConsumer {
 	return &orderConsumer{
-		svc: svc,
-		log: log,
-		ch:  channel,
+		svc:       svc,
+		inboxRepo: inboxRepo,
+		log:       log,
+		ch:        channel,
 	}
 }
 
@@ -126,24 +129,48 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	exists, err := c.inboxRepo.Get(ctx, msg.MessageId)
+	if err != nil {
+		c.log.Error("failed to get inbox by message id", zap.Error(err))
+		msg.Nack(false, true)
+		return
+	}
+
+	if exists {
+		c.log.Info("message already processed, skipping", zap.String("message_id", msg.MessageId))
+		msg.Ack(false)
+		return
+	}
+
 	var event model.OrderConsumer
-	err := json.Unmarshal(msg.Body, &event)
+	err = json.Unmarshal(msg.Body, &event)
 	if err != nil {
 		c.log.Error("invalid json payload", zap.Error(err))
 		return
 	}
 
+	reqUpdate := model.UpdateStatusOrder{
+		MessageID: msg.MessageId,
+		EventName: msg.RoutingKey,
+		Reason:    event.Reason,
+		OrderID:   event.OrderID,
+	}
 	switch msg.RoutingKey {
 	case "payment.success":
-		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusPaid, event.Reason)
+		reqUpdate.Status = model.OrderStatusPaid
+		err = c.svc.Update(ctx, &reqUpdate)
 	case "payment.failed", "inventory.reserved.failed":
-		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusFailed, event.Reason)
+		reqUpdate.Status = model.OrderStatusFailed
+		err = c.svc.Update(ctx, &reqUpdate)
 	case "shipment.shipped":
-		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusShipped, event.Reason)
+		reqUpdate.Status = model.OrderStatusShipped
+		err = c.svc.Update(ctx, &reqUpdate)
 	case "shipment.delivered":
-		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusDelivered, event.Reason)
+		reqUpdate.Status = model.OrderStatusDelivered
+		err = c.svc.Update(ctx, &reqUpdate)
 	case "inventory.reserved.success":
-		err = c.svc.Update(ctx, event.OrderID, model.OrderStatusWaitingPayment, event.Reason)
+		reqUpdate.Status = model.OrderStatusWaitingPayment
+		err = c.svc.Update(ctx, &reqUpdate)
 	}
 
 	if err != nil {

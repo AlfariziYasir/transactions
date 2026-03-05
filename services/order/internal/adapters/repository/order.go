@@ -37,7 +37,7 @@ func (r *orderRepo) getExecutor(ctx context.Context) postgres.PgxExecutor {
 func (r *orderRepo) Create(ctx context.Context, order *model.Order) error {
 	query, args, _ := psql.
 		Insert((&model.Order{}).TableName()).
-		Columns(order.ColumnsNames()...).
+		Columns(order.Columns()...).
 		Values(order.ToRow()...).
 		ToSql()
 

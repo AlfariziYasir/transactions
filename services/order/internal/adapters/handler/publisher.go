@@ -13,20 +13,26 @@ import (
 
 type publisher struct {
 	outboxRepo ports.OutboxRepo
-	channel    *amqp091.Channel
+	ch         *amqp091.Channel
 	log        *logger.Logger
 }
 
 func NewPublisher(
 	outboxRepo ports.OutboxRepo,
-	channel *amqp091.Channel,
+	ch *amqp091.Channel,
 	log *logger.Logger,
-) *publisher {
+) (*publisher, error) {
+	err := ch.Confirm(false)
+	if err != nil {
+		log.Error("failed to put channel in confirm mode", zap.Error(err))
+		return nil, err
+	}
+
 	return &publisher{
 		outboxRepo: outboxRepo,
-		channel:    channel,
+		ch:         ch,
 		log:        log,
-	}
+	}, nil
 }
 
 func (p *publisher) Start(ctx context.Context) {
@@ -39,6 +45,7 @@ func (p *publisher) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			p.log.Info("stopping worker")
+			return
 		case <-ticker.C:
 			p.processEvents(ctx)
 		}
@@ -53,12 +60,11 @@ func (p *publisher) processEvents(ctx context.Context) {
 	}
 
 	if len(events) == 0 {
-		p.log.Info("no pending status in outbox")
 		return
 	}
 
 	for _, e := range events {
-		err = p.channel.PublishWithContext(
+		deferedConfirm, err := p.ch.PublishWithDeferredConfirmWithContext(
 			ctx,
 			"order.events",
 			e.EventType,
@@ -78,6 +84,17 @@ func (p *publisher) processEvents(ctx context.Context) {
 				zap.String("id", e.ID),
 				zap.Error(err),
 			)
+			continue
+		}
+
+		ack, err := deferedConfirm.WaitContext(ctx)
+		if err != nil {
+			p.log.Error("context canceled while waiting for rabbitmq confirmation", zap.Error(err))
+			continue
+		}
+
+		if !ack {
+			p.log.Error("message nack by broker or connection dropped", zap.Error(err))
 			continue
 		}
 

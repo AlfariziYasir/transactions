@@ -55,6 +55,7 @@ func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*e
 
 	return &emptypb.Empty{}, nil
 }
+
 func (h *handler) Get(ctx context.Context, req *order.GetOrderRequest) (*order.Order, error) {
 	userID, role, err := h.extractData(ctx)
 	if err != nil {
