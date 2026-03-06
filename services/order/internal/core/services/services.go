@@ -186,7 +186,7 @@ func (s *service) Get(ctx context.Context, userID, role, orderID string) (*model
 	}, nil
 }
 
-func (s *service) List(ctx context.Context, userID, role string, req *model.ListRequest) ([]model.OrderResponse, int, string, error) {
+func (s *service) List(ctx context.Context, userID, role string, req *model.ListRequest) ([]*model.OrderResponse, int, string, error) {
 	var offset uint64 = 0
 	if req.PageToken != "" {
 		decoded, _ := base64.StdEncoding.DecodeString(req.PageToken)
@@ -215,9 +215,9 @@ func (s *service) List(ctx context.Context, userID, role string, req *model.List
 		nextPageToken = base64.StdEncoding.EncodeToString([]byte(strconv.FormatUint(nextOffset, 10)))
 	}
 
-	res := slices.Grow([]model.OrderResponse{}, len(orders))
+	res := slices.Grow([]*model.OrderResponse{}, len(orders))
 	for _, order := range orders {
-		res = append(res, model.OrderResponse{
+		res = append(res, &model.OrderResponse{
 			OrderID:         order.ID,
 			UserID:          order.UserID,
 			Currency:        order.Currency,

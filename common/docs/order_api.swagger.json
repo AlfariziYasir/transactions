@@ -39,20 +39,14 @@
           {
             "name": "pageSize",
             "in": "query",
-            "required": false,
+            "required": true,
             "type": "integer",
             "format": "int32"
           },
           {
             "name": "pageToken",
             "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "userId",
-            "in": "query",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -207,7 +201,10 @@
         "reason": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "reason"
+      ]
     },
     "protobufAny": {
       "type": "object",

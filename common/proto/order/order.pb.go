@@ -7,6 +7,7 @@
 package order
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
@@ -373,8 +374,7 @@ type ListOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Status        OrderStatus            `protobuf:"varint,4,opt,name=status,proto3,enum=order.v1.OrderStatus" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,3,opt,name=status,proto3,enum=order.v1.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -419,13 +419,6 @@ func (x *ListOrderRequest) GetPageSize() int32 {
 func (x *ListOrderRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
-	}
-	return ""
-}
-
-func (x *ListOrderRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
 	}
 	return ""
 }
@@ -605,7 +598,7 @@ var File_proto_order_order_proto protoreflect.FileDescriptor
 
 const file_proto_order_order_proto_rawDesc = "" +
 	"\n" +
-	"\x17proto/order/order.proto\x12\border.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\x88\x03\n" +
+	"\x17proto/order/order.proto\x12\border.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\x88\x03\n" +
 	"\x05Order\x12\x13\n" +
 	"\x02id\x18\x01 \x01(\tB\x03\xe0A\x03R\x02id\x12\x1c\n" +
 	"\auser_id\x18\x02 \x01(\tB\x03\xe0A\x03R\x06userId\x12&\n" +
@@ -624,30 +617,34 @@ const file_proto_order_order_proto_rawDesc = "" +
 	"\fproduct_name\x18\x02 \x01(\tR\vproductName\x12\x1a\n" +
 	"\bquantity\x18\x03 \x01(\x05R\bquantity\x12\x14\n" +
 	"\x05price\x18\x04 \x01(\tR\x05price\x12\x1a\n" +
-	"\bsubtotal\x18\x05 \x01(\tR\bsubtotal\"\xdd\x01\n" +
-	"\x12CreateOrderRequest\x12C\n" +
-	"\x05items\x18\x01 \x03(\v2(.order.v1.CreateOrderRequest.ItemRequestB\x03\xe0A\x02R\x05items\x12.\n" +
-	"\x10shipping_address\x18\x02 \x01(\tB\x03\xe0A\x02R\x0fshippingAddress\x1aR\n" +
-	"\vItemRequest\x12\"\n" +
+	"\bsubtotal\x18\x05 \x01(\tR\bsubtotal\"\xfb\x01\n" +
+	"\x12CreateOrderRequest\x12K\n" +
+	"\x05items\x18\x01 \x03(\v2(.order.v1.CreateOrderRequest.ItemRequestB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\x125\n" +
+	"\x10shipping_address\x18\x02 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x05R\x0fshippingAddress\x1aa\n" +
+	"\vItemRequest\x12*\n" +
 	"\n" +
-	"product_id\x18\x01 \x01(\tB\x03\xe0A\x02R\tproductId\x12\x1f\n" +
-	"\bquantity\x18\x02 \x01(\x05B\x03\xe0A\x02R\bquantity\"1\n" +
-	"\x0fGetOrderRequest\x12\x1e\n" +
-	"\border_id\x18\x01 \x01(\tB\x03\xe0A\x02R\aorderId\"\x96\x01\n" +
-	"\x10ListOrderRequest\x12\x1b\n" +
-	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"product_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\tproductId\x12&\n" +
+	"\bquantity\x18\x02 \x01(\x05B\n" +
+	"\xe0A\x02\xfaB\x04\x1a\x02 \x00R\bquantity\"9\n" +
+	"\x0fGetOrderRequest\x12&\n" +
+	"\border_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\aorderId\"\x95\x01\n" +
+	"\x10ListOrderRequest\x12'\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\n" +
+	"\xe0A\x02\xfaB\x04\x1a\x02 \x00R\bpageSize\x12)\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\x12-\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x15.order.v1.OrderStatusR\x06status\"\x85\x01\n" +
+	"page_token\x18\x02 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x01R\tpageToken\x12-\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x15.order.v1.OrderStatusR\x06status\"\x85\x01\n" +
 	"\x11ListOrderResponse\x12'\n" +
 	"\x06orders\x18\x01 \x03(\v2\x0f.order.v1.OrderR\x06orders\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"L\n" +
-	"\x12CancelOrderRequest\x12\x1e\n" +
-	"\border_id\x18\x01 \x01(\tB\x03\xe0A\x02R\aorderId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason*~\n" +
+	"totalCount\"`\n" +
+	"\x12CancelOrderRequest\x12&\n" +
+	"\border_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\aorderId\x12\"\n" +
+	"\x06reason\x18\x02 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x01R\x06reason*~\n" +
 	"\vOrderStatus\x12\x0f\n" +
 	"\vUNSPECIFIED\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\b\n" +

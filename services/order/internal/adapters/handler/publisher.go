@@ -60,6 +60,7 @@ func (p *publisher) processEvents(ctx context.Context) {
 	}
 
 	if len(events) == 0 {
+		p.log.Info("no pending status in outbox")
 		return
 	}
 

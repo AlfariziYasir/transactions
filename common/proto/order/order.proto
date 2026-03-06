@@ -9,6 +9,7 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {
@@ -112,23 +113,43 @@ message OrderItem {
 }
 
 message CreateOrderRequest {
-  message ItemRequest {
-      string product_id = 1 [(google.api.field_behavior) = REQUIRED];
-      int32 quantity = 2 [(google.api.field_behavior) = REQUIRED];
-  }
-  repeated ItemRequest items = 1 [(google.api.field_behavior) = REQUIRED];
-  string shipping_address = 2 [(google.api.field_behavior) = REQUIRED];
+    message ItemRequest {
+        string product_id = 1 [
+            (google.api.field_behavior) = REQUIRED,
+            (validate.rules).string.uuid = true
+        ];
+        int32 quantity = 2 [
+            (google.api.field_behavior) = REQUIRED,
+            (validate.rules).int32.gt = 0
+        ];
+    }
+    repeated ItemRequest items = 1 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).repeated.min_items = 1
+    ];
+    string shipping_address = 2 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.min_len = 5
+    ];
 }
 
 message GetOrderRequest {
-    string order_id = 1 [(google.api.field_behavior) = REQUIRED];
+    string order_id = 1 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.uuid = true
+    ];
 }
 
 message ListOrderRequest {
-    int32 page_size = 1;
-    string page_token = 2;
-    string user_id = 3;
-    OrderStatus status = 4;
+    int32 page_size = 1 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).int32.gt = 0
+    ];
+    string page_token = 2 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.min_len = 1
+    ];
+    OrderStatus status = 3;
 }
 
 message ListOrderResponse {
@@ -138,6 +159,12 @@ message ListOrderResponse {
 }
 
 message CancelOrderRequest {
-    string order_id = 1 [(google.api.field_behavior) = REQUIRED];
-    string reason = 2;
+    string order_id = 1 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.uuid = true
+    ];
+    string reason = 2 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.min_len = 1
+    ];;
 }

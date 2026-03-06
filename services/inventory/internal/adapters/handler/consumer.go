@@ -15,20 +15,23 @@ import (
 )
 
 type stockConsumer struct {
-	svc ports.StockService
-	ch  *amqp091.Channel
-	log *logger.Logger
+	svc       ports.StockService
+	inboxRepo ports.InboxRepo
+	ch        *amqp091.Channel
+	log       *logger.Logger
 }
 
 func NewStockConsumer(
 	svc ports.StockService,
+	inboxRepo ports.InboxRepo,
 	ch *amqp091.Channel,
 	log *logger.Logger,
 ) *stockConsumer {
 	return &stockConsumer{
-		svc: svc,
-		ch:  ch,
-		log: log,
+		svc:       svc,
+		inboxRepo: inboxRepo,
+		ch:        ch,
+		log:       log,
 	}
 }
 
@@ -102,12 +105,28 @@ func (c *stockConsumer) processMessage(msg amqp091.Delivery) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var event model.OrderEvent
-	err := json.Unmarshal(msg.Body, &event)
+	exists, err := c.inboxRepo.Get(ctx, msg.MessageId)
 	if err != nil {
-		c.log.Error("invalid json payload", zap.Error(err))
+		c.log.Error("failed to get inbox by message id", zap.Error(err))
+		msg.Nack(false, true)
 		return
 	}
+
+	if exists {
+		c.log.Info("message already processed, skipping", zap.String("message_id", msg.MessageId))
+		msg.Ack(false)
+		return
+	}
+
+	var event model.OrderEvent
+	err = json.Unmarshal(msg.Body, &event)
+	if err != nil {
+		c.log.Error("invalid json payload", zap.Error(err))
+		msg.Nack(false, false)
+		return
+	}
+	event.MessageID = msg.MessageId
+	event.EventName = msg.RoutingKey
 
 	switch msg.RoutingKey {
 	case "order.created":
@@ -116,10 +135,20 @@ func (c *stockConsumer) processMessage(msg amqp091.Delivery) {
 		err = c.svc.Release(ctx, &event)
 	case "order.paid":
 		err = c.svc.Deduct(ctx, &event)
+	default:
+		c.log.Warn("unknown routing key, discarding message", zap.String("routing_key", msg.RoutingKey))
+		msg.Nack(false, false)
+		return
 	}
 
 	if err != nil {
 		appErr, ok := errors.AsType[*errorx.AppError](err)
+		if ok && appErr.Type == errorx.ErrTypeValidation {
+			c.log.Warn("business validation error, discarding message", zap.Error(err))
+			msg.Ack(false)
+			return
+		}
+
 		if ok && appErr.Type == errorx.ErrTypeInternal {
 			c.log.Error("invalid payload format, routing to DLX", zap.Error(err))
 			msg.Nack(false, false)

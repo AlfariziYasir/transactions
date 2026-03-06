@@ -81,25 +81,25 @@ func (_m *OrderService) Get(ctx context.Context, userID string, role string, ord
 }
 
 // List provides a mock function with given fields: ctx, userID, role, req
-func (_m *OrderService) List(ctx context.Context, userID string, role string, req *model.ListRequest) ([]model.OrderResponse, int, string, error) {
+func (_m *OrderService) List(ctx context.Context, userID string, role string, req *model.ListRequest) ([]*model.OrderResponse, int, string, error) {
 	ret := _m.Called(ctx, userID, role, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for List")
 	}
 
-	var r0 []model.OrderResponse
+	var r0 []*model.OrderResponse
 	var r1 int
 	var r2 string
 	var r3 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.ListRequest) ([]model.OrderResponse, int, string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.ListRequest) ([]*model.OrderResponse, int, string, error)); ok {
 		return rf(ctx, userID, role, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.ListRequest) []model.OrderResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *model.ListRequest) []*model.OrderResponse); ok {
 		r0 = rf(ctx, userID, role, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]model.OrderResponse)
+			r0 = ret.Get(0).([]*model.OrderResponse)
 		}
 	}
 

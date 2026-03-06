@@ -183,14 +183,14 @@
           {
             "name": "pageSize",
             "in": "query",
-            "required": false,
+            "required": true,
             "type": "integer",
             "format": "int32"
           },
           {
             "name": "pageToken",
             "in": "query",
-            "required": false,
+            "required": true,
             "type": "string"
           },
           {
@@ -320,7 +320,11 @@
         "reason": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "adjustmentQuantity",
+        "reason"
+      ]
     },
     "InventoryServiceUpdateBody": {
       "type": "object",
@@ -334,7 +338,12 @@
         "price": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "name",
+        "description",
+        "price"
+      ]
     },
     "protobufAny": {
       "type": "object",
@@ -373,7 +382,10 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": [
+        "ids"
+      ]
     },
     "v1BatchGetProductsResponse": {
       "type": "object",
@@ -397,7 +409,10 @@
             "$ref": "#/definitions/v1ItemCheck"
           }
         }
-      }
+      },
+      "required": [
+        "items"
+      ]
     },
     "v1CheckStockResponse": {
       "type": "object",
@@ -432,7 +447,14 @@
           "type": "integer",
           "format": "int32"
         }
-      }
+      },
+      "required": [
+        "sku",
+        "name",
+        "description",
+        "price",
+        "initialStock"
+      ]
     },
     "v1ItemCheck": {
       "type": "object",

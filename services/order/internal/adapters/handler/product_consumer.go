@@ -85,6 +85,7 @@ func (c *productConsumer) processMessage(msg amqp091.Delivery) {
 		c.log.Error("failed to begin transactions", zap.Error(err))
 		return
 	}
+	defer c.trx.Rollback(txCtx)
 
 	exists, err := c.inboxRepo.Get(txCtx, msg.MessageId)
 	if err != nil {
@@ -141,6 +142,13 @@ func (c *productConsumer) processMessage(msg amqp091.Delivery) {
 	if !exists {
 		c.log.Warn("duplicate constraint", zap.Error(err))
 		msg.Ack(false)
+		return
+	}
+
+	err = c.trx.Commit(txCtx)
+	if err != nil {
+		c.log.Error("failed to commit transaction", zap.Error(err))
+		msg.Nack(false, true)
 		return
 	}
 

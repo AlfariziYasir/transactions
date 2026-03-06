@@ -93,10 +93,11 @@ func main() {
 	productRepo := repository.NewProductRepo(pg.Pool)
 	stockRepo := repository.NewStockRepo(pg.Pool)
 	outboxRepo := repository.NewOutboxRepo(pg.Pool)
+	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
 	productSvc := services.NewProductServices(productRepo, outboxRepo, trx, l)
-	stockSvc := services.NewStockService(stockRepo, outboxRepo, trx, l)
+	stockSvc := services.NewStockService(stockRepo, inboxRepo, outboxRepo, trx, l)
 
 	consumerCh, err := rmqConn.Channel()
 	if err != nil {
@@ -106,7 +107,7 @@ func main() {
 	defer consumerCh.Close()
 
 	go func() {
-		err = handler.NewStockConsumer(stockSvc, consumerCh, l).Start()
+		err = handler.NewStockConsumer(stockSvc, inboxRepo, consumerCh, l).Start()
 		if err != nil {
 			l.Fatal("failed to start inventory consumer", zap.Error(err))
 			return

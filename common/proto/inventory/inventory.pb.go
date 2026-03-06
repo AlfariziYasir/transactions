@@ -7,6 +7,7 @@
 package inventory
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
@@ -953,7 +954,7 @@ var File_proto_inventory_inventory_proto protoreflect.FileDescriptor
 
 const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\n" +
-	"\x1fproto/inventory/inventory.proto\x12\finventory.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xd3\x02\n" +
+	"\x1fproto/inventory/inventory.proto\x12\finventory.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\xd3\x02\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12\x12\n" +
@@ -967,26 +968,36 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x99\x01\n" +
-	"\x14CreateProductRequest\x12\x10\n" +
-	"\x03sku\x18\x01 \x01(\tR\x03sku\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\tR\x05price\x12#\n" +
-	"\rinitial_stock\x18\x05 \x01(\x05R\finitialStock\"r\n" +
-	"\x14UpdateProductRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\tR\x05price\"&\n" +
-	"\x14DeleteProductRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"#\n" +
-	"\x11GetProductRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"}\n" +
-	"\x13ListProductsRequest\x12\x1b\n" +
-	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xee\x01\n" +
+	"\x14CreateProductRequest\x12\x1c\n" +
+	"\x03sku\x18\x01 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x03R\x03sku\x12\x1e\n" +
+	"\x04name\x18\x02 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x03R\x04name\x12,\n" +
+	"\vdescription\x18\x03 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\n" +
+	"R\vdescription\x129\n" +
+	"\x05price\x18\x04 \x01(\tB#\xe0A\x02\xfaB\x1dr\x1b\x10\x012\x17^[0-9]+(\\.[0-9]{1,2})?$R\x05price\x12/\n" +
+	"\rinitial_stock\x18\x05 \x01(\x05B\n" +
+	"\xe0A\x02\xfaB\x04\x1a\x02 \x00R\finitialStock\"\xbc\x01\n" +
+	"\x14UpdateProductRequest\x12\x1b\n" +
+	"\x02id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\x02id\x12\x1e\n" +
+	"\x04name\x18\x02 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x03R\x04name\x12,\n" +
+	"\vdescription\x18\x03 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\n" +
+	"R\vdescription\x129\n" +
+	"\x05price\x18\x04 \x01(\tB#\xe0A\x02\xfaB\x1dr\x1b\x10\x012\x17^[0-9]+(\\.[0-9]{1,2})?$R\x05price\"3\n" +
+	"\x14DeleteProductRequest\x12\x1b\n" +
+	"\x02id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\x02id\"0\n" +
+	"\x11GetProductRequest\x12\x1b\n" +
+	"\x02id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\x02id\"\x95\x01\n" +
+	"\x13ListProductsRequest\x12'\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\n" +
+	"\xe0A\x02\xfaB\x04\x1a\x02 \x00R\bpageSize\x12)\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
+	"page_token\x18\x02 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x01R\tpageToken\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\bR\x06status\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\"\x8f\x02\n" +
 	"\fProductItems\x12\x0e\n" +
@@ -1004,16 +1015,19 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\bproducts\x18\x01 \x03(\v2\x1a.inventory.v1.ProductItemsR\bproducts\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"+\n" +
-	"\x17BatchGetProductsRequest\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\tR\x03ids\"M\n" +
+	"totalCount\"8\n" +
+	"\x17BatchGetProductsRequest\x12\x1d\n" +
+	"\x03ids\x18\x01 \x03(\tB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x03ids\"M\n" +
 	"\x18BatchGetProductsResponse\x121\n" +
-	"\bproducts\x18\x01 \x03(\v2\x15.inventory.v1.ProductR\bproducts\"|\n" +
-	"\x12AdjustStockRequest\x12\x1d\n" +
+	"\bproducts\x18\x01 \x03(\v2\x15.inventory.v1.ProductR\bproducts\"\xa1\x01\n" +
+	"\x12AdjustStockRequest\x12*\n" +
 	"\n" +
-	"product_id\x18\x01 \x01(\tR\tproductId\x12/\n" +
-	"\x13adjustment_quantity\x18\x02 \x01(\x05R\x12adjustmentQuantity\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\"U\n" +
+	"product_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\tproductId\x12;\n" +
+	"\x13adjustment_quantity\x18\x02 \x01(\x05B\n" +
+	"\xe0A\x02\xfaB\x04\x1a\x02@\x01R\x12adjustmentQuantity\x12\"\n" +
+	"\x06reason\x18\x03 \x01(\tB\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\n" +
+	"R\x06reason\"U\n" +
 	"\rStockResponse\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12%\n" +
@@ -1021,9 +1035,9 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\tItemCheck\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1a\n" +
-	"\bquantity\x18\x02 \x01(\x05R\bquantity\"B\n" +
-	"\x11CheckStockRequest\x12-\n" +
-	"\x05items\x18\x01 \x03(\v2\x17.inventory.v1.ItemCheckR\x05items\"o\n" +
+	"\bquantity\x18\x02 \x01(\x05R\bquantity\"O\n" +
+	"\x11CheckStockRequest\x12:\n" +
+	"\x05items\x18\x01 \x03(\v2\x17.inventory.v1.ItemCheckB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\"o\n" +
 	"\x12CheckStockResponse\x12!\n" +
 	"\fis_available\x18\x01 \x01(\bR\visAvailable\x126\n" +
 	"\x18out_of_stock_product_ids\x18\x02 \x03(\tR\x14outOfStockProductIds2\xec\t\n" +

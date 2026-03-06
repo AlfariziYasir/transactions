@@ -5,9 +5,11 @@ package inventory.v1;
 option go_package = "github.com/AlfariziYasir/transactions/common/proto/inventory";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/field_behavior.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
@@ -134,31 +136,76 @@ message Product {
 }
 
 message CreateProductRequest {
-  string sku = 1;
-  string name = 2;
-  string description = 3;
-  string price = 4;
-  int32 initial_stock = 5; 
+  string sku = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.min_len = 3
+  ];
+  string name = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.min_len = 3
+  ];
+  string description = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.min_len = 10
+  ];
+  string price = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string = {
+      pattern: "^[0-9]+(\\.[0-9]{1,2})?$",
+      min_len: 1
+    }
+  ];
+  int32 initial_stock = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).int32.gt = 0
+  ]; 
 }
 
 message UpdateProductRequest {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  string price = 4;
+  string id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
+  string name = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.min_len = 3
+  ];
+  string description = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.min_len = 10
+  ];
+  string price = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string = {
+      pattern: "^[0-9]+(\\.[0-9]{1,2})?$",
+      min_len: 1
+    }
+  ];
 }
 
 message DeleteProductRequest {
-  string id = 1;
+  string id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
 }
 
 message GetProductRequest {
-  string id = 1;
+  string id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
 }
 
 message ListProductsRequest {
-  int32 page_size = 1;
-  string page_token = 2;
+  int32 page_size = 1 [
+      (google.api.field_behavior) = REQUIRED,
+      (validate.rules).int32.gt = 0
+  ];
+  string page_token = 2 [
+      (google.api.field_behavior) = REQUIRED,
+      (validate.rules).string.min_len = 1
+  ];
   bool status = 3;
   string name = 4;
 }
@@ -181,7 +228,10 @@ message ListProductsResponse {
 }
 
 message BatchGetProductsRequest {
-  repeated string ids = 1;
+  repeated string ids = 1 [
+      (google.api.field_behavior) = REQUIRED,
+      (validate.rules).repeated.min_items = 1
+  ];
 }
 
 message BatchGetProductsResponse {
@@ -189,9 +239,18 @@ message BatchGetProductsResponse {
 }
 
 message AdjustStockRequest {
-  string product_id = 1;
-  int32 adjustment_quantity = 2;
-  string reason = 3;
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
+  int32 adjustment_quantity = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).int32 = {ignore_empty: true}
+  ];
+  string reason = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.min_len = 10
+  ];
 }
 
 message StockResponse {
@@ -205,7 +264,10 @@ message ItemCheck {
 }
 
 message CheckStockRequest {
-  repeated ItemCheck items = 1;
+  repeated ItemCheck items = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).repeated.min_items = 1
+  ];
 }
 
 message CheckStockResponse {

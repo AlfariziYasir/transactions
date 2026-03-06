@@ -18,6 +18,8 @@ type OrderItem struct {
 }
 
 type OrderEvent struct {
+	MessageID   string          `json:"message_id"`
+	EventName   string          `json:"event_name"`
 	OrderID     string          `json:"order_id"`
 	UserID      string          `json:"user_id"`
 	TotalAmount decimal.Decimal `json:"total_amount"`

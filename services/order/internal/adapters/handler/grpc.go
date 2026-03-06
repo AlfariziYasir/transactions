@@ -34,6 +34,10 @@ func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*e
 		return nil, err
 	}
 
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	if len(req.Items) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "product items is empty")
 	}
@@ -60,6 +64,10 @@ func (h *handler) Get(ctx context.Context, req *order.GetOrderRequest) (*order.O
 	userID, role, err := h.extractData(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	res, err := h.svc.Get(ctx, userID, role, req.OrderId)
@@ -95,6 +103,10 @@ func (h *handler) List(ctx context.Context, req *order.ListOrderRequest) (*order
 	userID, role, err := h.extractData(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	listReq := model.ListRequest{
@@ -134,6 +146,10 @@ func (h *handler) Cancel(ctx context.Context, req *order.CancelOrderRequest) (*e
 	userID, _, err := h.extractData(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	err = h.svc.Cancel(ctx, req.OrderId, userID)

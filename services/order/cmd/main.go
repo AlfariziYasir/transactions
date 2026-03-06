@@ -96,14 +96,7 @@ func main() {
 	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
-	svc := services.NewServices(
-		orderRepo,
-		productRepo,
-		outboxRepo,
-		inboxRepo,
-		l,
-		trx,
-	)
+	svc := services.NewServices(orderRepo, productRepo, outboxRepo, inboxRepo, l, trx)
 
 	productCh, err := rmqConn.Channel()
 	if err != nil {
