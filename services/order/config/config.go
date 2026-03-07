@@ -22,6 +22,7 @@ type Config struct {
 	RedisDB         int    `env:"REDIS_DB"`
 	RabbitMQUrl     string `env:"RABBITMQ_URL"`
 	SwaggerPath     string `env:"SWAGGER_PATH"`
+	PaymentClient   string `env:"PAYMENT_CLIENT"`
 }
 
 func NewConfig() (*Config, error) {

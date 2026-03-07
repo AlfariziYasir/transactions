@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "github.com/AlfariziYasir/transactions/common/proto/payment";
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "validate/validate.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Payment Service API";
+        version: "1.0";
+        description: "management payment service (Get, Tracking, History).";
+    };
+    security_definitions: {
+        security: {
+            key: "BearerAuth";
+            value: {
+                type: TYPE_API_KEY;
+                in: IN_HEADER;
+                name: "Authorization";
+            }
+        }
+    };
+    security: {
+        security_requirement: {
+            key: "BearerAuth";
+            value: {};
+        }
+    };
+};
+
+service PaymentService {
+  rpc Create(CreatePaymentRequest) returns (CreatePaymentResponse) {}
+
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse) {
+    option (google.api.http) = {
+      get: "/v1/payments/{payment_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "get payment by id";
+      description: "get detail payment by id";
+      tags: "payment";
+    };
+  }
+
+  rpc List(ListPaymentsRequest) returns (ListPaymentsResponse) {
+    option (google.api.http) = {
+      get: "/v1/payments"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "list payments by role";
+      description: "get list payments by role";
+      tags: "payment";
+    };
+  }
+}
+
+message CreatePaymentRequest {
+  string order_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
+  string user_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
+  int64 amount = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).int64.gt = 0
+  ];
+  string customer_name = 4 [(validate.rules).string.min_len = 2];
+  string customer_email = 5 [(validate.rules).string.email = true];
+}
+
+message CreatePaymentResponse {
+  string payment_id = 1;
+  string payment_url = 2; 
+  string status = 3;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
+  ];
+}
+
+message GetPaymentResponse {
+  string payment_id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  int64 amount = 4;
+  string status = 5;
+  string method = 6;
+  string paid_at = 7;
+}
+
+message ListPaymentsRequest {
+    int32 page_size = 1 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).int32.gt = 0
+    ];
+    string page_token = 2 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.min_len = 1
+    ];
+    string user_id = 3;
+}
+
+message ListPaymentsResponse {
+    repeated GetPaymentResponse orders = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+}

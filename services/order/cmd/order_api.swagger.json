@@ -79,8 +79,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "type": "object",
-              "properties": {}
+              "$ref": "#/definitions/v1CreateOrderReponse"
             }
           },
           "default": {
@@ -231,6 +230,14 @@
             "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "v1CreateOrderReponse": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string"
         }
       }
     },

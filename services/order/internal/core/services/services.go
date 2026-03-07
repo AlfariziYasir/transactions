@@ -11,6 +11,7 @@ import (
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
+	"github.com/AlfariziYasir/transactions/common/proto/payment"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ type service struct {
 	productRepo ports.ProductRepo
 	outboxRepo  ports.OutboxRepo
 	inboxRepo   ports.InboxRepo
+	payment     payment.PaymentServiceClient
 	trx         postgres.Trx
 	log         *logger.Logger
 }
@@ -32,6 +34,7 @@ func NewServices(
 	productRepo ports.ProductRepo,
 	outboxRepo ports.OutboxRepo,
 	inboxRepo ports.InboxRepo,
+	payment payment.PaymentServiceClient,
 	log *logger.Logger,
 	trx postgres.Trx,
 ) ports.OrderService {
@@ -40,12 +43,13 @@ func NewServices(
 		productRepo: productRepo,
 		outboxRepo:  outboxRepo,
 		inboxRepo:   inboxRepo,
+		payment:     payment,
 		log:         log,
 		trx:         trx,
 	}
 }
 
-func (s *service) Create(ctx context.Context, userID string, req *model.CreateOrderRequest) error {
+func (s *service) Create(ctx context.Context, userID string, req *model.CreateOrderRequest) (string, error) {
 	idProducts := []string{}
 	for _, v := range req.Items {
 		idProducts = append(idProducts, v.ProductID)
@@ -54,7 +58,7 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	products, err := s.productRepo.Get(ctx, idProducts)
 	if err != nil {
 		s.log.Error("failed to get products", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	productMap := make(map[string]*model.ProductReplicas)
@@ -68,7 +72,7 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	for _, item := range req.Items {
 		product, ok := productMap[item.ProductID]
 		if !ok {
-			return errorx.NewError(errorx.ErrTypeValidation, "product not found: "+item.ProductID, nil)
+			return "", errorx.NewError(errorx.ErrTypeValidation, "product not found: "+item.ProductID, nil)
 		}
 
 		qty := decimal.NewFromInt32(item.Quantity)
@@ -87,13 +91,15 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	txCtx, err := s.trx.Begin(ctx)
 	if err != nil {
 		s.log.Error("failed to begin transactions", zap.Error(err))
-		return err
+		return "", err
 	}
 	defer s.trx.Rollback(txCtx)
 
 	order := model.Order{
 		ID:              uuid.NewString(),
 		UserID:          userID,
+		CustomerName:    req.CustomerName,
+		CustomerEmail:   req.CustomerEmail,
 		TotalAmount:     totalAmount,
 		Currency:        "IDR",
 		Status:          model.OrderStatusPending,
@@ -104,7 +110,7 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	err = s.orderRepo.Create(txCtx, &order)
 	if err != nil {
 		s.log.Error("failed to create order", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	rows := [][]any{}
@@ -115,7 +121,7 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	err = s.orderRepo.CreateBulk(txCtx, (&model.OrderItem{}).ColumnNames(), rows)
 	if err != nil {
 		s.log.Error("failed to insert bulk order item", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	eventPayload := map[string]any{
@@ -137,16 +143,16 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 	err = s.outboxRepo.Create(txCtx, &outbox)
 	if err != nil {
 		s.log.Error("failed to insert outbox", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	err = s.trx.Commit(txCtx)
 	if err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
-		return err
+		return "", err
 	}
 
-	return nil
+	return order.ID, nil
 }
 
 func (s *service) Get(ctx context.Context, userID, role, orderID string) (*model.OrderResponse, error) {
@@ -176,9 +182,12 @@ func (s *service) Get(ctx context.Context, userID, role, orderID string) (*model
 	return &model.OrderResponse{
 		OrderID:         order.ID,
 		UserID:          order.UserID,
+		CustomerName:    order.CustomerName,
+		CustomerEmail:   order.CustomerEmail,
 		Currency:        order.Currency,
 		Status:          string(order.Status),
 		ShippingAddress: order.ShippingAddress,
+		PaymentUrl:      order.PaymentUrl,
 		TotalAmount:     order.TotalAmount,
 		CreatedAt:       order.CreatedAt,
 		UpdatedAt:       order.UpdatedAt,
@@ -220,8 +229,11 @@ func (s *service) List(ctx context.Context, userID, role string, req *model.List
 		res = append(res, &model.OrderResponse{
 			OrderID:         order.ID,
 			UserID:          order.UserID,
+			CustomerName:    order.CustomerName,
+			CustomerEmail:   order.CustomerEmail,
 			Currency:        order.Currency,
 			ShippingAddress: order.ShippingAddress,
+			PaymentUrl:      order.PaymentUrl,
 			Status:          string(order.Status),
 			TotalAmount:     order.TotalAmount,
 			CreatedAt:       order.CreatedAt,
@@ -361,8 +373,6 @@ func (s *service) Update(ctx context.Context, req *model.UpdateStatusOrder) erro
 		eventType = "order.delivered"
 	case model.OrderStatusCanceled:
 		eventType = "order.canceled"
-	case model.OrderStatusWaitingPayment:
-		eventType = "order.waiting_payment"
 	}
 
 	if req.Status != model.OrderStatusPending {
@@ -414,4 +424,85 @@ func (s *service) statusValidation(current, req model.OrderStatus) bool {
 	default:
 		return false
 	}
+}
+
+func (s *service) ReserveProcess(ctx context.Context, req *model.UpdateStatusOrder) error {
+	now := time.Now()
+
+	txCtx, err := s.trx.Begin(ctx)
+	if err != nil {
+		s.log.Error("failed to begin transactions", zap.Error(err))
+		return err
+	}
+	defer s.trx.Rollback(txCtx)
+
+	inbox := model.Inbox{
+		ID:          uuid.NewString(),
+		MessageID:   req.MessageID,
+		EventName:   req.EventName,
+		ProcessedAt: now,
+	}
+	inserted, err := s.inboxRepo.Create(txCtx, &inbox)
+	if err != nil {
+		s.log.Error("failed to create inbox", zap.Error(err))
+		return err
+	}
+
+	if !inserted {
+		s.log.Info("message already processed", zap.String("id", req.MessageID))
+		return nil
+	}
+
+	var order model.Order
+	filters := map[string]any{
+		"id": req.OrderID,
+	}
+	err = s.orderRepo.Get(txCtx, filters, &order)
+	if err != nil {
+		s.log.Error("failed to get order by id and user_id", zap.Error(err))
+		return err
+	}
+
+	if order.Status != model.OrderStatusPending {
+		return errorx.NewError(
+			errorx.ErrTypeValidation,
+			fmt.Sprintf("invalid status transition from %s to %s", order.Status, req.Status),
+			nil,
+		)
+	}
+
+	clientCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	payload := &payment.CreatePaymentRequest{
+		OrderId:       order.ID,
+		UserId:        order.UserID,
+		Amount:        order.TotalAmount.IntPart(),
+		CustomerName:  order.CustomerName,
+		CustomerEmail: order.CustomerEmail,
+	}
+	res, err := s.payment.Create(clientCtx, payload)
+	if err != nil {
+		s.log.Error("failed to create payment", zap.Error(err))
+		return errorx.NewError(errorx.ErrTypeInternal, err.Error(), err)
+	}
+
+	orderReq := map[string]any{
+		"status":      string(req.Status),
+		"payment_url": res.PaymentUrl,
+		"updated_at":  now,
+	}
+	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
+	if err != nil {
+		s.log.Error("failed to update status order", zap.Error(err))
+		return err
+	}
+
+	err = s.trx.Commit(txCtx)
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

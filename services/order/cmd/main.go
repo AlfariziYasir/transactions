@@ -19,6 +19,7 @@ import (
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
 	"github.com/AlfariziYasir/transactions/common/pkg/redis"
 	"github.com/AlfariziYasir/transactions/common/proto/order"
+	"github.com/AlfariziYasir/transactions/common/proto/payment"
 	"github.com/AlfariziYasir/transactions/services/order/config"
 	"github.com/AlfariziYasir/transactions/services/order/internal/adapters/handler"
 	"github.com/AlfariziYasir/transactions/services/order/internal/adapters/repository"
@@ -96,7 +97,20 @@ func main() {
 	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
-	svc := services.NewServices(orderRepo, productRepo, outboxRepo, inboxRepo, l, trx)
+	// grpc client
+	paymentConn, err := grpc.NewClient(
+		cfg.PaymentClient,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		l.Fatal("failed to connect client payment", zap.Error(err))
+		return
+	}
+	defer paymentConn.Close()
+
+	paymentClient := payment.NewPaymentServiceClient(paymentConn)
+
+	svc := services.NewServices(orderRepo, productRepo, outboxRepo, inboxRepo, paymentClient, l, trx)
 
 	productCh, err := rmqConn.Channel()
 	if err != nil {

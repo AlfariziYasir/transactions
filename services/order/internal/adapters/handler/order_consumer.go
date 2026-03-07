@@ -170,7 +170,7 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 		err = c.svc.Update(ctx, &reqUpdate)
 	case "inventory.reserved.success":
 		reqUpdate.Status = model.OrderStatusWaitingPayment
-		err = c.svc.Update(ctx, &reqUpdate)
+		err = c.svc.ReserveProcess(ctx, &reqUpdate)
 	}
 
 	if err != nil {

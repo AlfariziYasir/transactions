@@ -21,10 +21,13 @@ const (
 type Order struct {
 	ID              string          `json:"id" db:"id"`
 	UserID          string          `json:"user_id" db:"user_id"`
-	TotalAmount     decimal.Decimal `json:"total_amount" db:"total_amount"`
+	CustomerName    string          `json:"customer_name" db:"customer_name"`
+	CustomerEmail   string          `json:"customer_email" db:"customer_email"`
 	Currency        string          `json:"currency" db:"currency"`
-	Status          OrderStatus     `json:"status" db:"status"`
 	ShippingAddress string          `json:"shipping_address" db:"shipping_address"`
+	PaymentUrl      string          `json:"payment_url" db:"payment_url"`
+	Status          OrderStatus     `json:"status" db:"status"`
+	TotalAmount     decimal.Decimal `json:"total_amount" db:"total_amount"`
 	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
 	DeletedAt       *time.Time      `json:"deleted_at" db:"deleted_at"`
@@ -35,11 +38,11 @@ func (o *Order) TableName() string {
 }
 
 func (o *Order) Columns() []string {
-	return []string{"id", "user_id", "total_amount", "currency", "status", "shipping_address", "created_at", "updated_at", "deleted_at"}
+	return []string{"id", "user_id", "customer_name", "customer_email", "currency", "shipping_address", "payment_url", "status", "total_amount", "created_at", "updated_at", "deleted_at"}
 }
 
 func (o *Order) ToRow() []any {
-	return []any{o.ID, o.UserID, o.TotalAmount, o.Currency, o.Status, o.ShippingAddress, o.CreatedAt, o.UpdatedAt, o.DeletedAt}
+	return []any{o.ID, o.UserID, o.CustomerName, o.CustomerEmail, o.Currency, o.ShippingAddress, o.PaymentUrl, o.Status, o.TotalAmount, o.CreatedAt, o.UpdatedAt, o.DeletedAt}
 }
 
 type OrderItem struct {
@@ -65,6 +68,8 @@ func (i *OrderItem) ToRow() []any {
 }
 
 type CreateOrderRequest struct {
+	CustomerName    string        `json:"customer_name"`
+	CustomerEmail   string        `json:"customer_email"`
 	Items           []ItemRequest `json:"items"`
 	ShippingAddress string        `json:"shipping_address"`
 }
@@ -77,6 +82,9 @@ type ItemRequest struct {
 type OrderResponse struct {
 	OrderID         string          `json:"order_id"`
 	UserID          string          `json:"user_id"`
+	CustomerName    string          `json:"customer_name"`
+	CustomerEmail   string          `json:"customer_email"`
+	PaymentUrl      string          `json:"payment_url"`
 	Currency        string          `json:"currency"`
 	Status          string          `json:"status"`
 	ShippingAddress string          `json:"shipping_address"`

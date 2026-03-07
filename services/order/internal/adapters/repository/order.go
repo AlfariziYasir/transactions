@@ -84,10 +84,12 @@ func (r *orderRepo) Get(ctx context.Context, filters map[string]any, order *mode
 	}
 	defer rows.Close()
 
-	order, err = pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[model.Order])
+	res, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[model.Order])
 	if err != nil {
 		return errorx.DbError(err, err.Error())
 	}
+
+	*order = *res
 
 	return nil
 }

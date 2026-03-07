@@ -36,7 +36,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service OrderService {
-  rpc Create(CreateOrderRequest) returns (google.protobuf.Empty) {
+  rpc Create(CreateOrderRequest) returns (CreateOrderReponse) {
     option (google.api.http) = {
         post: "/v1/orders"
         body: "*"
@@ -110,6 +110,10 @@ message OrderItem {
   int32 quantity = 3;
   string price = 4;
   string subtotal = 5;
+}
+
+message CreateOrderReponse {
+    string order_id = 1;
 }
 
 message CreateOrderRequest {

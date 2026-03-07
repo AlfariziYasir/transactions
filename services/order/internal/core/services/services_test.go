@@ -8,12 +8,14 @@ import (
 
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
+	"github.com/AlfariziYasir/transactions/common/proto/payment"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
 	"github.com/AlfariziYasir/transactions/services/order/internal/mocks"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
 )
 
 func setupService() (
@@ -28,10 +30,11 @@ func setupService() (
 	inbox := new(mocks.InboxRepo)
 	order := new(mocks.OrderRepo)
 	product := new(mocks.ProductRepo)
+	payment := payment.NewPaymentServiceClient(&grpc.ClientConn{})
 	trx := new(mocks.Trx)
 	log := logger.NewNop()
 
-	svc := NewServices(order, product, outbox, inbox, log, trx)
+	svc := NewServices(order, product, outbox, inbox, payment, log, trx)
 	return svc, outbox, order, product, inbox, trx
 }
 
@@ -76,8 +79,9 @@ func TestService_Create(t *testing.T) {
 		trx.On("Commit", txCtx).Return(nil).Once()
 		trx.On("Rollback", txCtx).Return(nil).Once()
 
-		err := svc.Create(ctx, userID, &req)
+		res, err := svc.Create(ctx, userID, &req)
 		assert.NoError(t, err)
+		assert.NotEmpty(t, res)
 		productRepo.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)
 		outboxRepo.AssertExpectations(t)
@@ -88,7 +92,7 @@ func TestService_Create(t *testing.T) {
 		productRepo.On("Get", ctx, []string{products[0].ID}).
 			Return([]*model.ProductReplicas{}, nil).Once()
 
-		err := svc.Create(ctx, userID, &req)
+		_, err := svc.Create(ctx, userID, &req)
 		assert.Error(t, err)
 		productRepo.AssertExpectations(t)
 
@@ -105,7 +109,7 @@ func TestService_Create(t *testing.T) {
 
 		trx.On("Rollback", txCtx).Return(nil).Once()
 
-		err := svc.Create(ctx, userID, &req)
+		_, err := svc.Create(ctx, userID, &req)
 		assert.Error(t, err)
 		productRepo.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)

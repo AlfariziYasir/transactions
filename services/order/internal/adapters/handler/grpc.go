@@ -28,7 +28,7 @@ func NewHandler(svc ports.OrderService, log *logger.Logger) *handler {
 	}
 }
 
-func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*emptypb.Empty, error) {
+func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*order.CreateOrderReponse, error) {
 	userID, _, err := h.extractData(ctx)
 	if err != nil {
 		return nil, err
@@ -52,12 +52,14 @@ func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*e
 		})
 	}
 
-	err = h.svc.Create(ctx, userID, orderReq)
+	orderID, err := h.svc.Create(ctx, userID, orderReq)
 	if err != nil {
 		return nil, errorx.MapError(err, h.log)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &order.CreateOrderReponse{
+		OrderId: orderID,
+	}, nil
 }
 
 func (h *handler) Get(ctx context.Context, req *order.GetOrderRequest) (*order.Order, error) {

@@ -33,21 +33,31 @@ func (_m *OrderService) Cancel(ctx context.Context, orderID string, userID strin
 }
 
 // Create provides a mock function with given fields: ctx, userID, req
-func (_m *OrderService) Create(ctx context.Context, userID string, req *model.CreateOrderRequest) error {
+func (_m *OrderService) Create(ctx context.Context, userID string, req *model.CreateOrderRequest) (string, error) {
 	ret := _m.Called(ctx, userID, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *model.CreateOrderRequest) error); ok {
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.CreateOrderRequest) (string, error)); ok {
+		return rf(ctx, userID, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.CreateOrderRequest) string); ok {
 		r0 = rf(ctx, userID, req)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(string)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, string, *model.CreateOrderRequest) error); ok {
+		r1 = rf(ctx, userID, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Get provides a mock function with given fields: ctx, userID, role, orderID
@@ -122,6 +132,24 @@ func (_m *OrderService) List(ctx context.Context, userID string, role string, re
 	}
 
 	return r0, r1, r2, r3
+}
+
+// ReserveProcess provides a mock function with given fields: ctx, req
+func (_m *OrderService) ReserveProcess(ctx context.Context, req *model.UpdateStatusOrder) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReserveProcess")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *model.UpdateStatusOrder) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // Update provides a mock function with given fields: ctx, req

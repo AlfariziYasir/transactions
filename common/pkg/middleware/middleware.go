@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/AlfariziYasir/transactions/common/pkg/auth"
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
@@ -169,16 +168,16 @@ func (i *AuthInterceptor) extractToken(ctx context.Context) (string, error) {
 		return "", status.Error(codes.Unauthenticated, "metadata is not provided")
 	}
 
+	fmt.Println("metadata", md)
+
 	values := md["authorization"]
 	if len(values) == 0 {
 		return "", status.Error(codes.Unauthenticated, "authorization token is not provided")
 	}
 
-	authHeader := values[0]
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+	if len(values) == 0 {
 		return "", status.Error(codes.Unauthenticated, "authorization header format must be Bearer {token}")
 	}
 
-	return parts[1], nil
+	return values[0], nil
 }

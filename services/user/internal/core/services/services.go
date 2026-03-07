@@ -47,8 +47,11 @@ func (s *userService) Login(ctx context.Context, req model.UserRequest) (string,
 
 	err := s.repo.Get(ctx, map[string]any{"email": req.Email}, true, &user)
 	if err != nil {
+		s.log.Error("failed get user", zap.Error(err))
 		return "", "", err
 	}
+
+	fmt.Println("data user:", user)
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {

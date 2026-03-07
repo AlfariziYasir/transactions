@@ -61,10 +61,12 @@ func (r *repository) Get(ctx context.Context, filters map[string]any, status boo
 	}
 	defer rows.Close()
 
-	user, err = pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[model.User])
+	res, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[model.User])
 	if err != nil {
 		return errorx.DbError(err, err.Error())
 	}
+
+	*user = *res
 
 	return nil
 }

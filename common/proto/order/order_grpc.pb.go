@@ -30,7 +30,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrderServiceClient interface {
-	Create(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	Create(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderReponse, error)
 	Get(ctx context.Context, in *GetOrderRequest, opts ...grpc.CallOption) (*Order, error)
 	List(ctx context.Context, in *ListOrderRequest, opts ...grpc.CallOption) (*ListOrderResponse, error)
 	Cancel(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*empty.Empty, error)
@@ -44,9 +44,9 @@ func NewOrderServiceClient(cc grpc.ClientConnInterface) OrderServiceClient {
 	return &orderServiceClient{cc}
 }
 
-func (c *orderServiceClient) Create(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *orderServiceClient) Create(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderReponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(empty.Empty)
+	out := new(CreateOrderReponse)
 	err := c.cc.Invoke(ctx, OrderService_Create_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (c *orderServiceClient) Cancel(ctx context.Context, in *CancelOrderRequest,
 // All implementations must embed UnimplementedOrderServiceServer
 // for forward compatibility.
 type OrderServiceServer interface {
-	Create(context.Context, *CreateOrderRequest) (*empty.Empty, error)
+	Create(context.Context, *CreateOrderRequest) (*CreateOrderReponse, error)
 	Get(context.Context, *GetOrderRequest) (*Order, error)
 	List(context.Context, *ListOrderRequest) (*ListOrderResponse, error)
 	Cancel(context.Context, *CancelOrderRequest) (*empty.Empty, error)
@@ -102,7 +102,7 @@ type OrderServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedOrderServiceServer struct{}
 
-func (UnimplementedOrderServiceServer) Create(context.Context, *CreateOrderRequest) (*empty.Empty, error) {
+func (UnimplementedOrderServiceServer) Create(context.Context, *CreateOrderRequest) (*CreateOrderReponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
 func (UnimplementedOrderServiceServer) Get(context.Context, *GetOrderRequest) (*Order, error) {

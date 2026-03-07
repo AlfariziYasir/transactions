@@ -110,10 +110,12 @@ func (r *productRepo) Get(ctx context.Context, filters map[string]any, product *
 	}
 	defer rows.Close()
 
-	product, err = pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[model.ProductWithStock])
+	res, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByName[model.ProductWithStock])
 	if err != nil {
 		return errorx.DbError(err, err.Error())
 	}
+
+	*product = *res
 
 	return nil
 }
