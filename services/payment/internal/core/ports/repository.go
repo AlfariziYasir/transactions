@@ -18,8 +18,3 @@ type OutboxRepo interface {
 	Get(ctx context.Context, limit uint64) ([]*model.Outbox, error)
 	Update(ctx context.Context, id string, data map[string]any) error
 }
-
-type InboxRepo interface {
-	Create(ctx context.Context, inbox *model.Inbox) (bool, error)
-	Get(ctx context.Context, messageId string) (bool, error)
-}

@@ -43,7 +43,7 @@ func (h *handler) Create(ctx context.Context, req *payment.CreatePaymentRequest)
 	res, err := h.svc.Create(ctx, gatewayReq)
 	if err != nil {
 		h.log.Error("failed to handle create payment", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "internal error: %v", err)
+		return nil, errorx.MapError(err, h.log)
 	}
 
 	return &payment.CreatePaymentResponse{

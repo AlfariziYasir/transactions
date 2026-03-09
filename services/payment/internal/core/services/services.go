@@ -24,7 +24,7 @@ type service struct {
 	log         *logger.Logger
 }
 
-func NewService(
+func NewServices(
 	paymentRepo ports.PaymentRepository,
 	outboxRepo ports.OutboxRepo,
 	trx postgres.Trx,

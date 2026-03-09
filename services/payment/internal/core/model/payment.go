@@ -72,3 +72,13 @@ type PaymentWebhook struct {
 	PaymentType   string
 	GrossAmount   string
 }
+
+type WebhookPayload struct {
+	TransactionID     string `json:"transaction_id"`
+	OrderID           string `json:"order_id"`
+	TransactionStatus string `json:"transaction_status"`
+	StatusCode        string `json:"status_code"`
+	GrossAmount       string `json:"gross_amount"`
+	SignatureKey      string `json:"signature_key"`
+	PaymentType       string `json:"payment_type"`
+}
