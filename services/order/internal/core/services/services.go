@@ -106,6 +106,7 @@ func (s *service) Create(ctx context.Context, userID string, req *model.CreateOr
 		ShippingAddress: req.ShippingAddress,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
+		Version:         1,
 	}
 	err = s.orderRepo.Create(txCtx, &order)
 	if err != nil {
@@ -191,6 +192,7 @@ func (s *service) Get(ctx context.Context, userID, role, orderID string) (*model
 		TotalAmount:     order.TotalAmount,
 		CreatedAt:       order.CreatedAt,
 		UpdatedAt:       order.UpdatedAt,
+		Version:         order.Version,
 		Items:           items,
 	}, nil
 }
@@ -236,6 +238,7 @@ func (s *service) List(ctx context.Context, userID, role string, req *model.List
 			PaymentUrl:      order.PaymentUrl,
 			Status:          string(order.Status),
 			TotalAmount:     order.TotalAmount,
+			Version:         order.Version,
 			CreatedAt:       order.CreatedAt,
 			UpdatedAt:       order.UpdatedAt,
 		})
@@ -270,6 +273,7 @@ func (s *service) Cancel(ctx context.Context, orderID, userID string) error {
 	orderReq := map[string]any{
 		"status":     string(model.OrderStatusCanceled),
 		"updated_at": time.Now(),
+		"version":    order.Version + 1,
 	}
 	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
 	if err != nil {
@@ -354,6 +358,7 @@ func (s *service) Update(ctx context.Context, req *model.UpdateStatusOrder) erro
 	orderReq := map[string]any{
 		"status":     string(req.Status),
 		"updated_at": now,
+		"version":    order.Version + 1,
 	}
 	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
 	if err != nil {
@@ -491,6 +496,7 @@ func (s *service) ReserveProcess(ctx context.Context, req *model.UpdateStatusOrd
 		"status":      string(req.Status),
 		"payment_url": res.PaymentUrl,
 		"updated_at":  now,
+		"version":     order.Version + 1,
 	}
 	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
 	if err != nil {

@@ -514,6 +514,10 @@ func (m *GetPaymentResponse) validate(all bool) error {
 
 	// no validation rules for UserId
 
+	// no validation rules for CustomerName
+
+	// no validation rules for CustomerEmail
+
 	// no validation rules for Amount
 
 	// no validation rules for Status
@@ -646,7 +650,9 @@ func (m *ListPaymentsRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for UserId
+	// no validation rules for Status
+
+	// no validation rules for CustomerName
 
 	if len(errors) > 0 {
 		return ListPaymentsRequestMultiError(errors)

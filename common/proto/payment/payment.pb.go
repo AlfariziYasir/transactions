@@ -209,10 +209,12 @@ type GetPaymentResponse struct {
 	PaymentId     string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
 	OrderId       string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Amount        int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Method        string                 `protobuf:"bytes,6,opt,name=method,proto3" json:"method,omitempty"`
-	PaidAt        string                 `protobuf:"bytes,7,opt,name=paid_at,json=paidAt,proto3" json:"paid_at,omitempty"`
+	CustomerName  string                 `protobuf:"bytes,4,opt,name=customer_name,json=customerName,proto3" json:"customer_name,omitempty"`
+	CustomerEmail string                 `protobuf:"bytes,5,opt,name=customer_email,json=customerEmail,proto3" json:"customer_email,omitempty"`
+	Amount        int64                  `protobuf:"varint,6,opt,name=amount,proto3" json:"amount,omitempty"`
+	Status        string                 `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
+	Method        string                 `protobuf:"bytes,8,opt,name=method,proto3" json:"method,omitempty"`
+	PaidAt        string                 `protobuf:"bytes,9,opt,name=paid_at,json=paidAt,proto3" json:"paid_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -268,6 +270,20 @@ func (x *GetPaymentResponse) GetUserId() string {
 	return ""
 }
 
+func (x *GetPaymentResponse) GetCustomerName() string {
+	if x != nil {
+		return x.CustomerName
+	}
+	return ""
+}
+
+func (x *GetPaymentResponse) GetCustomerEmail() string {
+	if x != nil {
+		return x.CustomerEmail
+	}
+	return ""
+}
+
 func (x *GetPaymentResponse) GetAmount() int64 {
 	if x != nil {
 		return x.Amount
@@ -300,7 +316,8 @@ type ListPaymentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	CustomerName  string                 `protobuf:"bytes,4,opt,name=customer_name,json=customerName,proto3" json:"customer_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -349,9 +366,16 @@ func (x *ListPaymentsRequest) GetPageToken() string {
 	return ""
 }
 
-func (x *ListPaymentsRequest) GetUserId() string {
+func (x *ListPaymentsRequest) GetStatus() string {
 	if x != nil {
-		return x.UserId
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ListPaymentsRequest) GetCustomerName() string {
+	if x != nil {
+		return x.CustomerName
 	}
 	return ""
 }
@@ -437,23 +461,26 @@ const file_proto_payment_payment_proto_rawDesc = "" +
 	"\x06status\x18\x03 \x01(\tR\x06status\"?\n" +
 	"\x11GetPaymentRequest\x12*\n" +
 	"\n" +
-	"payment_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\tpaymentId\"\xc8\x01\n" +
+	"payment_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\tpaymentId\"\x94\x02\n" +
 	"\x12GetPaymentResponse\x12\x1d\n" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tR\tpaymentId\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06amount\x18\x04 \x01(\x03R\x06amount\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\x12\x16\n" +
-	"\x06method\x18\x06 \x01(\tR\x06method\x12\x17\n" +
-	"\apaid_at\x18\a \x01(\tR\x06paidAt\"\x82\x01\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
+	"\rcustomer_name\x18\x04 \x01(\tR\fcustomerName\x12%\n" +
+	"\x0ecustomer_email\x18\x05 \x01(\tR\rcustomerEmail\x12\x16\n" +
+	"\x06amount\x18\x06 \x01(\x03R\x06amount\x12\x16\n" +
+	"\x06status\x18\a \x01(\tR\x06status\x12\x16\n" +
+	"\x06method\x18\b \x01(\tR\x06method\x12\x17\n" +
+	"\apaid_at\x18\t \x01(\tR\x06paidAt\"\xa6\x01\n" +
 	"\x13ListPaymentsRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xe0A\x02\xfaB\x04\x1a\x02 \x00R\bpageSize\x12)\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\n" +
-	"\xe0A\x02\xfaB\x04r\x02\x10\x01R\tpageToken\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"\x97\x01\n" +
+	"\xe0A\x02\xfaB\x04r\x02\x10\x01R\tpageToken\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12#\n" +
+	"\rcustomer_name\x18\x04 \x01(\tR\fcustomerName\"\x97\x01\n" +
 	"\x14ListPaymentsResponse\x126\n" +
 	"\x06orders\x18\x01 \x03(\v2\x1e.payment.v1.GetPaymentResponseR\x06orders\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +

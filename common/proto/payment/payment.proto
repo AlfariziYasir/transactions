@@ -93,10 +93,12 @@ message GetPaymentResponse {
   string payment_id = 1;
   string order_id = 2;
   string user_id = 3;
-  int64 amount = 4;
-  string status = 5;
-  string method = 6;
-  string paid_at = 7;
+  string customer_name = 4;
+  string customer_email = 5;
+  int64 amount = 6;
+  string status = 7;
+  string method = 8;
+  string paid_at = 9;
 }
 
 message ListPaymentsRequest {
@@ -108,7 +110,8 @@ message ListPaymentsRequest {
         (google.api.field_behavior) = REQUIRED,
         (validate.rules).string.min_len = 1
     ];
-    string user_id = 3;
+    string status = 3;
+    string customer_name = 4;
 }
 
 message ListPaymentsResponse {

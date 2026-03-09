@@ -72,7 +72,7 @@ func (r *orderRepo) CreateBulk(ctx context.Context, columns []string, rows [][]a
 }
 
 func (r *orderRepo) Get(ctx context.Context, filters map[string]any, order *model.Order) error {
-	query := psql.Select("*").From((&model.Order{}).TableName())
+	query := psql.Select("*").From(order.TableName())
 	for k, v := range filters {
 		query = query.Where(squirrel.Eq{k: v})
 	}

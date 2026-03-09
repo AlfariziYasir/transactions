@@ -5,3 +5,4 @@ use ./services/inventory
 use ./services/order
 use ./services/user
 use ./services/notification
+use ./services/payment

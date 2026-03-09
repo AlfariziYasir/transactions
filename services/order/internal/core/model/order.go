@@ -30,7 +30,7 @@ type Order struct {
 	TotalAmount     decimal.Decimal `json:"total_amount" db:"total_amount"`
 	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
-	DeletedAt       *time.Time      `json:"deleted_at" db:"deleted_at"`
+	Version         int             `json:"version" db:"version"`
 }
 
 func (o *Order) TableName() string {
@@ -38,11 +38,11 @@ func (o *Order) TableName() string {
 }
 
 func (o *Order) Columns() []string {
-	return []string{"id", "user_id", "customer_name", "customer_email", "currency", "shipping_address", "payment_url", "status", "total_amount", "created_at", "updated_at", "deleted_at"}
+	return []string{"id", "user_id", "customer_name", "customer_email", "currency", "shipping_address", "payment_url", "status", "total_amount", "created_at", "updated_at", "version"}
 }
 
 func (o *Order) ToRow() []any {
-	return []any{o.ID, o.UserID, o.CustomerName, o.CustomerEmail, o.Currency, o.ShippingAddress, o.PaymentUrl, o.Status, o.TotalAmount, o.CreatedAt, o.UpdatedAt, o.DeletedAt}
+	return []any{o.ID, o.UserID, o.CustomerName, o.CustomerEmail, o.Currency, o.ShippingAddress, o.PaymentUrl, o.Status, o.TotalAmount, o.CreatedAt, o.UpdatedAt, o.Version}
 }
 
 type OrderItem struct {
@@ -91,6 +91,7 @@ type OrderResponse struct {
 	TotalAmount     decimal.Decimal `json:"total_amount"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
+	Version         int             `json:"version"`
 	Items           []*OrderItem    `json:"items,omitempty"`
 }
 
