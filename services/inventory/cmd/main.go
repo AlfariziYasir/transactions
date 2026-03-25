@@ -107,7 +107,7 @@ func main() {
 	defer consumerCh.Close()
 
 	go func() {
-		err = handler.NewStockConsumer(stockSvc, inboxRepo, consumerCh, l).Start()
+		err = handler.NewStockConsumer(stockSvc, consumerCh, l).Start()
 		if err != nil {
 			l.Fatal("failed to start inventory consumer", zap.Error(err))
 			return
@@ -121,7 +121,12 @@ func main() {
 	}
 	defer publisherCh.Close()
 
-	go handler.NewPublisher(outboxRepo, publisherCh, l)
+	pub, err := handler.NewPublisher(outboxRepo, publisherCh, l)
+	if err != nil {
+		l.Fatal("failed to start inventory publisher", zap.Error(err))
+		return
+	}
+	go pub.Start(ctx)
 
 	inventoryHandler := handler.NewHandler(productSvc, stockSvc, l)
 	authInterceptor := middleware.NewAuthInterceptor(l, rds)
@@ -137,7 +142,6 @@ func main() {
 		l.Fatal("failed to create new gateway grpc server", zap.Error(err))
 		return
 	}
-	defer grpcServer.Shutdown()
 
 	inventory.RegisterInventoryServiceServer(grpcServer.Server, inventoryHandler)
 	reflection.Register(grpcServer.Server)
@@ -172,12 +176,6 @@ func main() {
 	)
 
 	go httpServer.Start()
-	defer func() {
-		if err = httpServer.Shutdown(); err != nil {
-			l.Fatal("failed to shutdown http server", zap.Error(err))
-			return
-		}
-	}()
 	l.Info("HTTP server started")
 
 	// Waiting signal
@@ -193,8 +191,13 @@ func main() {
 	}
 
 	l.Info("shutting down servers...")
-	grpcServer.Shutdown()
-	httpServer.Shutdown()
 	cancel()
+	time.Sleep(1 * time.Second)
+	if err := grpcServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown grpc server gracefully", zap.Error(err))
+	}
+	if err := httpServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown http server gracefully", zap.Error(err))
+	}
 	l.Info("server exited properly")
 }

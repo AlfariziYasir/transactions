@@ -43,7 +43,11 @@ func (r *outboxRepo) Create(ctx context.Context, outbox *model.Outbox) error {
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to insert outbox: no rows affected",
+			nil,
+		)
 	}
 
 	return nil
@@ -82,7 +86,11 @@ func (r *outboxRepo) Update(ctx context.Context, id string, data map[string]any)
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to update outbox: no rows affected",
+			nil,
+		)
 	}
 
 	return nil

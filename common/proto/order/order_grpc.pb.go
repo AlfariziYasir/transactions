@@ -8,7 +8,6 @@ package order
 
 import (
 	context "context"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -33,7 +32,7 @@ type OrderServiceClient interface {
 	Create(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderReponse, error)
 	Get(ctx context.Context, in *GetOrderRequest, opts ...grpc.CallOption) (*Order, error)
 	List(ctx context.Context, in *ListOrderRequest, opts ...grpc.CallOption) (*ListOrderResponse, error)
-	Cancel(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	Cancel(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*DynamicResponse, error)
 }
 
 type orderServiceClient struct {
@@ -74,9 +73,9 @@ func (c *orderServiceClient) List(ctx context.Context, in *ListOrderRequest, opt
 	return out, nil
 }
 
-func (c *orderServiceClient) Cancel(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *orderServiceClient) Cancel(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*DynamicResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(empty.Empty)
+	out := new(DynamicResponse)
 	err := c.cc.Invoke(ctx, OrderService_Cancel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -91,7 +90,7 @@ type OrderServiceServer interface {
 	Create(context.Context, *CreateOrderRequest) (*CreateOrderReponse, error)
 	Get(context.Context, *GetOrderRequest) (*Order, error)
 	List(context.Context, *ListOrderRequest) (*ListOrderResponse, error)
-	Cancel(context.Context, *CancelOrderRequest) (*empty.Empty, error)
+	Cancel(context.Context, *CancelOrderRequest) (*DynamicResponse, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
 
@@ -111,7 +110,7 @@ func (UnimplementedOrderServiceServer) Get(context.Context, *GetOrderRequest) (*
 func (UnimplementedOrderServiceServer) List(context.Context, *ListOrderRequest) (*ListOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedOrderServiceServer) Cancel(context.Context, *CancelOrderRequest) (*empty.Empty, error) {
+func (UnimplementedOrderServiceServer) Cancel(context.Context, *CancelOrderRequest) (*DynamicResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
 }
 func (UnimplementedOrderServiceServer) mustEmbedUnimplementedOrderServiceServer() {}

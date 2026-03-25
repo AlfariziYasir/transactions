@@ -36,6 +36,7 @@ func NewProductConsumer(
 		inboxRepo: inboxRepo,
 		log:       log,
 		ch:        ch,
+		trx:       trx,
 	}
 }
 
@@ -46,7 +47,11 @@ func (c *productConsumer) Start() error {
 		return err
 	}
 
-	q, err := c.ch.QueueDeclare("order.product.sync", true, false, false, false, nil)
+	args := amqp091.Table{
+		"x-dead-letter-exchange":    "order.dlx",
+		"x-dead-letter-routing-key": "status.failed",
+	}
+	q, err := c.ch.QueueDeclare("order.product.sync", true, false, false, false, args)
 	if err != nil {
 		c.log.Error("failed queue declare", zap.Error(err))
 		return err
@@ -79,6 +84,14 @@ func (c *productConsumer) processMessage(msg amqp091.Delivery) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	var product model.ProductReplicas
+	err := json.Unmarshal(msg.Body, &product)
+	if err != nil {
+		c.log.Error("invalid message payload", zap.Error(err))
+		msg.Nack(false, false)
+		return
+	}
+
 	txCtx, err := c.trx.Begin(ctx)
 	if err != nil {
 		msg.Nack(false, true)
@@ -87,24 +100,22 @@ func (c *productConsumer) processMessage(msg amqp091.Delivery) {
 	}
 	defer c.trx.Rollback(txCtx)
 
-	exists, err := c.inboxRepo.Get(txCtx, msg.MessageId)
+	inbox := model.Inbox{
+		ID:          uuid.NewString(),
+		MessageID:   msg.MessageId,
+		EventName:   msg.RoutingKey,
+		ProcessedAt: time.Now(),
+	}
+	exists, err := c.inboxRepo.Create(txCtx, &inbox)
 	if err != nil {
-		c.log.Error("failed to get inbox by message id", zap.Error(err))
+		c.log.Error("failed to create inbox", zap.Error(err))
 		msg.Nack(false, true)
 		return
 	}
 
-	if exists {
-		c.log.Info("message already processed, skipping", zap.String("message_id", msg.MessageId))
+	if !exists {
+		c.log.Warn("duplicate constraint", zap.Error(err))
 		msg.Ack(false)
-		return
-	}
-
-	var product model.ProductReplicas
-	err = json.Unmarshal(msg.Body, &product)
-	if err != nil {
-		c.log.Error("invalid message payload", zap.Error(err))
-		msg.Nack(false, false)
 		return
 	}
 
@@ -117,31 +128,13 @@ func (c *productConsumer) processMessage(msg amqp091.Delivery) {
 				zap.String("id", product.ID),
 				zap.Time("event_time", product.LastUpdated),
 			)
+			c.trx.Commit(txCtx)
 			msg.Ack(false)
 			return
 		}
 
 		c.log.Error("failed to upsert product replica, requeueing", zap.Error(err))
 		msg.Nack(false, true)
-		return
-	}
-
-	inbox := model.Inbox{
-		ID:          uuid.NewString(),
-		MessageID:   msg.MessageId,
-		EventName:   msg.RoutingKey,
-		ProcessedAt: time.Now(),
-	}
-	exists, err = c.inboxRepo.Create(txCtx, &inbox)
-	if err != nil {
-		c.log.Error("failed to create inbox", zap.Error(err))
-		msg.Nack(false, true)
-		return
-	}
-
-	if !exists {
-		c.log.Warn("duplicate constraint", zap.Error(err))
-		msg.Ack(false)
 		return
 	}
 

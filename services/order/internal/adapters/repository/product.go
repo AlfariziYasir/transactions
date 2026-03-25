@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
+	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
 	"github.com/Masterminds/squirrel"
@@ -21,6 +22,15 @@ func NewProductRepo(db *pgxpool.Pool) ports.ProductRepo {
 	}
 }
 
+func (r *productRepo) getExecutor(ctx context.Context) postgres.PgxExecutor {
+	tx, ok := ctx.Value(postgres.TrxKey{}).(pgx.Tx)
+	if ok {
+		return tx
+	}
+
+	return r.db
+}
+
 func (r *productRepo) Upsert(ctx context.Context, req *model.ProductReplicas) error {
 	query := `
 		insert into product_replicas (id, name, price, is_active, last_updated, version)
@@ -36,12 +46,13 @@ func (r *productRepo) Upsert(ctx context.Context, req *model.ProductReplicas) er
 			excluded.last_updated > product_replicas.last_updated
 	`
 
-	tag, err := r.db.Exec(ctx, query,
+	tag, err := r.getExecutor(ctx).Exec(ctx, query,
 		req.ID,
 		req.Name,
 		req.Price,
 		req.IsActive,
 		req.LastUpdated,
+		1,
 	)
 	if err != nil {
 		return errorx.DbError(err, "failed to upsert product")
@@ -55,7 +66,7 @@ func (r *productRepo) Upsert(ctx context.Context, req *model.ProductReplicas) er
 }
 
 func (r *productRepo) Get(ctx context.Context, ids []string) ([]*model.ProductReplicas, error) {
-	query := psql.Select("*").From((&model.ProductReplicas{}).Tablename()).
+	query := psql.Select((&model.ProductReplicas{}).ToColumns()...).From((&model.ProductReplicas{}).Tablename()).
 		Where(squirrel.Eq{"id": ids})
 
 	sqlQuery, args, err := query.ToSql()
@@ -63,7 +74,7 @@ func (r *productRepo) Get(ctx context.Context, ids []string) ([]*model.ProductRe
 		return nil, errorx.NewError(errorx.ErrTypeInternal, "failed to build data query", err)
 	}
 
-	rows, err := r.db.Query(ctx, sqlQuery, args...)
+	rows, err := r.getExecutor(ctx).Query(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, errorx.DbError(err, err.Error())
 	}

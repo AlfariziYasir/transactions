@@ -46,7 +46,8 @@ func NewRedisCache(addr, password string, db int) (Cache, error) {
 func (c *redisCache) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
 	switch v := value.(type) {
 	case string, int, int64, float64, bool, []byte:
-		return c.client.Set(ctx, key, v, ttl).Err()
+		err := c.client.Set(ctx, key, v, ttl).Err()
+		return err
 	default:
 		b, err := json.Marshal(v)
 		if err != nil {

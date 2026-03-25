@@ -29,11 +29,11 @@ func NewHandler(log *logger.Logger, svc ports.Services) *handler {
 
 func (h *handler) Create(ctx context.Context, req *payment.CreatePaymentRequest) (*payment.CreatePaymentResponse, error) {
 	gatewayReq := &model.PaymentGatewayReq{
-		OrderID:       req.GetOrderId(),
-		UserID:        req.GetUserId(),
-		Amount:        req.GetAmount(),
-		CustomerName:  req.GetCustomerName(),
-		CustomerEmail: req.GetCustomerEmail(),
+		OrderID:       req.OrderId,
+		UserID:        req.UserId,
+		Amount:        req.Amount,
+		CustomerName:  req.CustomerName,
+		CustomerEmail: req.CustomerEmail,
 	}
 
 	if err := req.Validate(); err != nil {

@@ -11,7 +11,6 @@ import (
 	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -43,12 +42,14 @@ func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*o
 	}
 
 	orderReq := &model.CreateOrderRequest{
-		ShippingAddress: req.GetShippingAddress(),
+		ShippingAddress: req.ShippingAddress,
+		CustomerName:    req.CustomerName,
+		CustomerEmail:   req.CustomerEmail,
 	}
 	for _, item := range req.GetItems() {
 		orderReq.Items = append(orderReq.Items, model.ItemRequest{
-			ProductID: item.GetProductId(),
-			Quantity:  item.GetQuantity(),
+			ProductID: item.ProductId,
+			Quantity:  item.Quantity,
 		})
 	}
 
@@ -144,7 +145,7 @@ func (h *handler) List(ctx context.Context, req *order.ListOrderRequest) (*order
 	}, nil
 }
 
-func (h *handler) Cancel(ctx context.Context, req *order.CancelOrderRequest) (*emptypb.Empty, error) {
+func (h *handler) Cancel(ctx context.Context, req *order.CancelOrderRequest) (*order.DynamicResponse, error) {
 	userID, _, err := h.extractData(ctx)
 	if err != nil {
 		return nil, err
@@ -159,7 +160,9 @@ func (h *handler) Cancel(ctx context.Context, req *order.CancelOrderRequest) (*e
 		return nil, errorx.MapError(err, h.log)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &order.DynamicResponse{
+		Message: "cancel order is successfully",
+	}, nil
 }
 
 func (h *handler) extractData(ctx context.Context) (string, string, error) {

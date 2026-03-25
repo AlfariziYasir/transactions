@@ -27,6 +27,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 //go:embed user_api.swagger.json
@@ -84,9 +85,9 @@ func main() {
 		l.Fatal("failed to create new gateway grpc server", zap.Error(err))
 		return
 	}
-	defer grpcServer.Shutdown()
 
 	user.RegisterUserServiceServer(grpcServer.Server, userHandler)
+	reflection.Register(grpcServer.Server)
 	if err = grpcServer.Start(); err != nil {
 		l.Fatal("failed to start gateway grpcServer", zap.Error(err))
 		return
@@ -118,12 +119,6 @@ func main() {
 	)
 
 	go httpServer.Start()
-	defer func() {
-		if err = httpServer.Shutdown(); err != nil {
-			l.Fatal("failed to shutdown http server", zap.Error(err))
-			return
-		}
-	}()
 	l.Info("HTTP server started")
 
 	// Waiting signal
@@ -139,8 +134,13 @@ func main() {
 	}
 
 	l.Info("shutting down servers...")
-	grpcServer.Shutdown()
-	httpServer.Shutdown()
 	cancel()
+	time.Sleep(1 * time.Second)
+	if err := grpcServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown grpc server gracefully", zap.Error(err))
+	}
+	if err := httpServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown http server gracefully", zap.Error(err))
+	}
 	l.Info("server exited properly")
 }

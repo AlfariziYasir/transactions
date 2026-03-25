@@ -12,7 +12,7 @@ type OrderRepo interface {
 	Get(ctx context.Context, filters map[string]any, order *model.Order) error
 	GetDetail(ctx context.Context, orderID string) ([]*model.OrderItem, error)
 	List(ctx context.Context, limit, offset uint64, req map[string]any) ([]*model.Order, int, error)
-	Update(ctx context.Context, id string, data map[string]any) error
+	Update(ctx context.Context, id string, currentVersion int, data map[string]any) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -29,5 +29,4 @@ type OutboxRepo interface {
 
 type InboxRepo interface {
 	Create(ctx context.Context, inbox *model.Inbox) (bool, error)
-	Get(ctx context.Context, messageId string) (bool, error)
 }

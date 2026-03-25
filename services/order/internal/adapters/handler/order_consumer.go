@@ -15,23 +15,20 @@ import (
 )
 
 type orderConsumer struct {
-	svc       ports.OrderService
-	inboxRepo ports.InboxRepo
-	log       *logger.Logger
-	ch        *amqp091.Channel
+	svc ports.OrderService
+	log *logger.Logger
+	ch  *amqp091.Channel
 }
 
 func NewOrderConsumer(
 	svc ports.OrderService,
-	inboxRepo ports.InboxRepo,
 	log *logger.Logger,
 	channel *amqp091.Channel,
 ) *orderConsumer {
 	return &orderConsumer{
-		svc:       svc,
-		inboxRepo: inboxRepo,
-		log:       log,
-		ch:        channel,
+		svc: svc,
+		log: log,
+		ch:  channel,
 	}
 }
 
@@ -101,7 +98,7 @@ func (c *orderConsumer) Start() error {
 		return err
 	}
 
-	err = c.ch.QueueBind(q.Name, "inventory.*", "inventory.events", false, nil)
+	err = c.ch.QueueBind(q.Name, "inventory.#", "inventory.events", false, nil)
 	if err != nil {
 		c.log.Error("failed queue bind inventory event", zap.Error(err))
 		return err
@@ -129,23 +126,11 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	exists, err := c.inboxRepo.Get(ctx, msg.MessageId)
-	if err != nil {
-		c.log.Error("failed to get inbox by message id", zap.Error(err))
-		msg.Nack(false, true)
-		return
-	}
-
-	if exists {
-		c.log.Info("message already processed, skipping", zap.String("message_id", msg.MessageId))
-		msg.Ack(false)
-		return
-	}
-
 	var event model.OrderConsumer
-	err = json.Unmarshal(msg.Body, &event)
+	err := json.Unmarshal(msg.Body, &event)
 	if err != nil {
 		c.log.Error("invalid json payload", zap.Error(err))
+		msg.Nack(false, false)
 		return
 	}
 
@@ -159,7 +144,7 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	case "payment.success":
 		reqUpdate.Status = model.OrderStatusPaid
 		err = c.svc.Update(ctx, &reqUpdate)
-	case "payment.failed", "inventory.reserved.failed":
+	case "payment.failed", "payment.expired", "inventory.reserved.failed":
 		reqUpdate.Status = model.OrderStatusFailed
 		err = c.svc.Update(ctx, &reqUpdate)
 	case "shipment.shipped":
@@ -171,6 +156,10 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	case "inventory.reserved.success":
 		reqUpdate.Status = model.OrderStatusWaitingPayment
 		err = c.svc.ReserveProcess(ctx, &reqUpdate)
+	default:
+		c.log.Info("ignoring unhandled event", zap.String("routing_key", msg.RoutingKey))
+		msg.Ack(false)
+		return
 	}
 
 	if err != nil {
@@ -185,13 +174,13 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 		}
 
 		if ok && appErr.Type == errorx.ErrTypeInternal {
-			c.log.Error("invalid payload format, routing to DLX", zap.Error(err))
-			msg.Nack(false, false)
+			c.log.Error("internal server error, requeueing", zap.Error(err))
+			msg.Nack(false, true)
 			return
 		}
 
-		c.log.Error("failed to process status update, requeueing", zap.Error(err))
-		msg.Nack(false, true)
+		c.log.Error("unrecoverable error, routing to DLX", zap.Error(err))
+		msg.Nack(false, false)
 		return
 	}
 	c.log.Info("order status successfully updated via event", zap.String("event", msg.RoutingKey))

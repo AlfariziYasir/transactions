@@ -90,7 +90,8 @@ func (s *productService) Create(ctx context.Context, req *model.CreateProduct) e
 
 	return nil
 }
-func (s *productService) Get(ctx context.Context, id string) (*model.ProductWithStock, error) {
+
+func (s *productService) Get(ctx context.Context, id string) (model.ProductWithStock, error) {
 	var product model.ProductWithStock
 	filters := map[string]any{
 		"id": id,
@@ -98,11 +99,12 @@ func (s *productService) Get(ctx context.Context, id string) (*model.ProductWith
 	err := s.productRepo.Get(ctx, filters, &product)
 	if err != nil {
 		s.log.Error("failed to get product", zap.Error(err))
-		return nil, err
+		return model.ProductWithStock{}, err
 	}
 
-	return &product, nil
+	return product, nil
 }
+
 func (s *productService) GetProducts(ctx context.Context, ids []string) ([]*model.ProductWithStock, error) {
 	products, err := s.productRepo.GetByIDs(ctx, ids)
 	if err != nil {
@@ -112,7 +114,8 @@ func (s *productService) GetProducts(ctx context.Context, ids []string) ([]*mode
 
 	return products, nil
 }
-func (s *productService) Check(ctx context.Context, req []model.ItemCheck) (*model.CheckStockResponse, error) {
+
+func (s *productService) Check(ctx context.Context, req []model.ItemCheck) (model.CheckStockResponse, error) {
 	var ids []string
 	reqMap := make(map[string]int)
 	for _, r := range req {
@@ -123,7 +126,7 @@ func (s *productService) Check(ctx context.Context, req []model.ItemCheck) (*mod
 	products, err := s.productRepo.GetByIDs(ctx, ids)
 	if err != nil {
 		s.log.Error("failed to get products", zap.Error(err))
-		return nil, err
+		return model.CheckStockResponse{}, err
 	}
 
 	available := make(map[string]int)
@@ -143,8 +146,9 @@ func (s *productService) Check(ctx context.Context, req []model.ItemCheck) (*mod
 		}
 	}
 
-	return &res, nil
+	return res, nil
 }
+
 func (s *productService) List(ctx context.Context, req *model.ListRequest) ([]*model.Product, int, string, error) {
 	var offset uint64 = 0
 	if req.PageToken != "" {
@@ -153,7 +157,7 @@ func (s *productService) List(ctx context.Context, req *model.ListRequest) ([]*m
 	}
 
 	filters := make(map[string]any)
-	filters["status"] = req.Status
+	filters["is_active"] = req.Status
 	if req.Name != "" {
 		filters["name"] = req.Name
 	}

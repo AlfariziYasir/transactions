@@ -5,6 +5,7 @@ package inventory.v1;
 option go_package = "github.com/AlfariziYasir/transactions/common/proto/inventory";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
 import "google/api/field_behavior.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
@@ -36,7 +37,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service InventoryService {
-  rpc Create(CreateProductRequest) returns (google.protobuf.Empty) {
+  rpc Create(CreateProductRequest) returns (DynamicResponse) {
     option (google.api.http) = {
       post: "/v1/admin/products"
       body: "*"
@@ -47,7 +48,7 @@ service InventoryService {
     };
   }
 
-  rpc Update(UpdateProductRequest) returns (google.protobuf.Empty) {
+  rpc Update(UpdateProductRequest) returns (DynamicResponse) {
     option (google.api.http) = {
       put: "/v1/admin/products/{id}"
       body: "*"
@@ -58,7 +59,7 @@ service InventoryService {
     };
   }
 
-  rpc Delete(DeleteProductRequest) returns (google.protobuf.Empty) {
+  rpc Delete(DeleteProductRequest) returns (DynamicResponse) {
     option (google.api.http) = {
       delete: "/v1/admin/products/{id}"
     };
@@ -68,7 +69,7 @@ service InventoryService {
     };
   }
 
-  rpc AdjustStock(AdjustStockRequest) returns (google.protobuf.Empty) {
+  rpc AdjustStock(AdjustStockRequest) returns (DynamicResponse) {
     option (google.api.http) = {
       post: "/v1/admin/products/{product_id}/stock-adjust"
       body: "*"
@@ -243,7 +244,7 @@ message AdjustStockRequest {
     (google.api.field_behavior) = REQUIRED,
     (validate.rules).string.uuid = true
   ];
-  int32 adjustment_quantity = 2 [
+  int32 quantity = 2 [
     (google.api.field_behavior) = REQUIRED,
     (validate.rules).int32 = {ignore_empty: true}
   ];
@@ -273,4 +274,9 @@ message CheckStockRequest {
 message CheckStockResponse {
   bool is_available = 1;
   repeated string out_of_stock_product_ids = 2;
+}
+
+message DynamicResponse {
+  string message = 1;
+  google.protobuf.Value data = 2;
 }

@@ -24,7 +24,8 @@ type OrderEvent struct {
 	UserID      string          `json:"user_id"`
 	TotalAmount decimal.Decimal `json:"total_amount"`
 	Items       []OrderItem     `json:"items"`
-	CreatedAt   time.Time       `json:"created_at"`
+	EventTime   time.Time       `json:"event_time"`
+	Reason      string          `json:"reason"`
 }
 
 type OrderStatusEvent struct {

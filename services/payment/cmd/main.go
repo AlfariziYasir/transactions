@@ -93,11 +93,14 @@ func main() {
 	defer rmqConn.Close()
 
 	outboxRepo := repository.NewOutboxRepo(pg.Pool)
+	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	paymentRepo := repository.NewPaymentRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
-	gateway := gateway.NewMidtransGateway(cfg.WebhookServerKey, l, false)
+	gateway := gateway.NewMidtransGateway(cfg.WebhookServerKey, l, false, cfg)
 
-	svc := services.NewServices(paymentRepo, outboxRepo, trx, gateway, l)
+	svc := services.NewServices(paymentRepo, outboxRepo, inboxRepo, trx, gateway, l, cfg)
+	// worker check payment status
+	go svc.CheckStatus(ctx)
 
 	outboxCh, err := rmqConn.Channel()
 	if err != nil {
@@ -128,7 +131,6 @@ func main() {
 		l.Fatal("failed to create new gateway grpc server", zap.Error(err))
 		return
 	}
-	defer grpcServer.Shutdown()
 
 	payment.RegisterPaymentServiceServer(grpcServer.Server, paymentHandler)
 	reflection.Register(grpcServer.Server)
@@ -164,12 +166,6 @@ func main() {
 	)
 
 	go httpServer.Start()
-	defer func() {
-		if err = httpServer.Shutdown(); err != nil {
-			l.Fatal("failed to shutdown http server", zap.Error(err))
-			return
-		}
-	}()
 	l.Info("HTTP server started")
 
 	// Waiting signal
@@ -185,8 +181,13 @@ func main() {
 	}
 
 	l.Info("shutting down servers...")
-	grpcServer.Shutdown()
-	httpServer.Shutdown()
 	cancel()
+	time.Sleep(1 * time.Second)
+	if err := grpcServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown grpc server gracefully", zap.Error(err))
+	}
+	if err := httpServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown http server gracefully", zap.Error(err))
+	}
 	l.Info("server exited properly")
 }

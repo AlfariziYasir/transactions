@@ -50,7 +50,11 @@ func (r *productRepo) Create(ctx context.Context, product *model.Product, initia
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found, rows affected 0", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to insert product: no rows affected",
+			nil,
+		)
 	}
 
 	stock := &model.Stock{
@@ -72,7 +76,11 @@ func (r *productRepo) Create(ctx context.Context, product *model.Product, initia
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found, rows affected 0", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to insert stock: no rows affected",
+			nil,
+		)
 	}
 
 	return nil
@@ -160,7 +168,12 @@ func (r *productRepo) List(ctx context.Context, limit, offset uint64, filters ma
 	query := psql.Select("*").From((&model.Product{}).TableName())
 	if len(filters) > 0 {
 		for k, v := range filters {
-			query = query.Where(squirrel.ILike{k: fmt.Sprintf("%%%s%%", v)})
+			switch v.(type) {
+			case bool:
+				query = query.Where(squirrel.Eq{k: v})
+			default:
+				query = query.Where(squirrel.ILike{k: fmt.Sprintf("%%%s%%", v)})
+			}
 		}
 	}
 
@@ -187,7 +200,12 @@ func (r *productRepo) List(ctx context.Context, limit, offset uint64, filters ma
 	query2 := psql.Select("count(*)").From((&model.Product{}).TableName())
 	if len(filters) > 0 {
 		for k, v := range filters {
-			query2 = query2.Where(squirrel.ILike{k: fmt.Sprintf("%%%s%%", v)})
+			switch v.(type) {
+			case bool:
+				query = query.Where(squirrel.Eq{k: v})
+			default:
+				query = query.Where(squirrel.ILike{k: fmt.Sprintf("%%%s%%", v)})
+			}
 		}
 	}
 
@@ -219,7 +237,11 @@ func (r *productRepo) Update(ctx context.Context, id string, data map[string]any
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeNotFound,
+			"failed to update product: no rows affected",
+			pgx.ErrNoRows,
+		)
 	}
 
 	return nil

@@ -50,6 +50,19 @@ func (s *Server) Notify() <-chan error {
 	return s.notify
 }
 
-func (s *Server) Shutdown() {
-	s.Server.GracefulStop()
+func (s *Server) Shutdown() error {
+	stop := make(chan struct{})
+
+	go func() {
+		s.Server.GracefulStop()
+		close(stop)
+	}()
+
+	select {
+	case <-time.After(s.shutdownTimeout):
+		s.Server.Stop()
+		return fmt.Errorf("grpc server forced to stop after %v timeout", s.shutdownTimeout)
+	case <-stop:
+		return nil
+	}
 }

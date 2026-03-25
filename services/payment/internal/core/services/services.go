@@ -9,6 +9,7 @@ import (
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
 	"github.com/AlfariziYasir/transactions/common/pkg/logger"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
+	"github.com/AlfariziYasir/transactions/services/payment/config"
 	"github.com/AlfariziYasir/transactions/services/payment/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/payment/internal/core/ports"
 	"github.com/google/uuid"
@@ -19,24 +20,30 @@ import (
 type service struct {
 	paymentRepo ports.PaymentRepository
 	outboxRepo  ports.OutboxRepo
+	inboxRepo   ports.InboxRepo
 	gateway     ports.PaymentGateway
 	trx         postgres.Trx
 	log         *logger.Logger
+	cfg         *config.Config
 }
 
 func NewServices(
 	paymentRepo ports.PaymentRepository,
 	outboxRepo ports.OutboxRepo,
+	inboxRepo ports.InboxRepo,
 	trx postgres.Trx,
 	gateway ports.PaymentGateway,
 	log *logger.Logger,
+	cfg *config.Config,
 ) ports.Services {
 	return &service{
 		paymentRepo: paymentRepo,
 		outboxRepo:  outboxRepo,
+		inboxRepo:   inboxRepo,
 		gateway:     gateway,
 		log:         log,
 		trx:         trx,
+		cfg:         cfg,
 	}
 }
 
@@ -44,12 +51,7 @@ func (s *service) Create(ctx context.Context, req *model.PaymentGatewayReq) (*mo
 	var payment model.Payment
 
 	err := s.paymentRepo.Get(ctx, map[string]any{"order_id": req.OrderID}, &payment)
-	if err != nil {
-		s.log.Error("failed to get payment by order id", zap.Error(err))
-		return nil, err
-	}
-
-	if payment.ID != "" {
+	if err == nil && payment.OrderID != "" {
 		s.log.Info("payment already exists, returning exists data", zap.String("order_id", req.OrderID))
 		return &model.PaymentResponse{
 			PaymentID:  payment.ID,
@@ -83,6 +85,7 @@ func (s *service) Create(ctx context.Context, req *model.PaymentGatewayReq) (*mo
 	payment.Status = model.PaymentStatusPending
 	payment.CreatedAt = now
 	payment.UpdatedAt = now
+	payment.Version = 1
 	err = s.paymentRepo.Create(ctx, &payment)
 	if err != nil {
 		s.log.Error("failed to create payment", zap.Error(err))
@@ -183,7 +186,7 @@ func (s *service) Update(ctx context.Context, req *model.PaymentWebhook) error {
 		s.log.Info("payment already process", zap.String("transaction_id", req.TransactionID))
 		return nil
 	} else if status == string(model.PaymentStatusPaid) {
-		s.log.Warn("attempt to update already pain payment", zap.String("order_id", req.OrderID))
+		s.log.Warn("attempt to update already paid payment", zap.String("order_id", req.OrderID))
 		return nil
 	}
 
@@ -199,11 +202,12 @@ func (s *service) Update(ctx context.Context, req *model.PaymentWebhook) error {
 		"method":       req.PaymentType,
 		"reference_id": req.TransactionID,
 		"updated_at":   now,
+		"version":      payment.Version + 1,
 	}
 	if status == string(model.PaymentStatusPaid) {
 		paymentReq["paid_at"] = now
 	}
-	err = s.paymentRepo.Update(txCtx, payment.ID, paymentReq)
+	err = s.paymentRepo.Update(txCtx, payment.ID, payment.Version, paymentReq)
 	if err != nil {
 		s.log.Error("failed to update payment status", zap.Error(err))
 		return err
@@ -225,6 +229,161 @@ func (s *service) Update(ctx context.Context, req *model.PaymentWebhook) error {
 	err = s.outboxRepo.Create(txCtx, &outbox)
 	if err != nil {
 		s.log.Error("failed to create outbox", zap.Error(err))
+		return err
+	}
+
+	err = s.trx.Commit(txCtx)
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) CheckStatus(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	s.log.Info("checking status payment from midtrans")
+	for {
+		select {
+		case <-ctx.Done():
+			s.log.Info("check status payment stopped")
+			return
+		case <-ticker.C:
+			s.log.Info("running payment status check")
+			now := time.Now()
+			payments, err := s.paymentRepo.GetStatus(ctx, s.cfg.PaymentExpired)
+			if err != nil {
+				s.log.Error("failed to get pending payments", zap.Error(err))
+				continue
+			}
+
+			for _, p := range payments {
+				midtransRes, err := s.gateway.CheckStatus(ctx, p.OrderID)
+				if err != nil {
+					s.log.Error("failed to check transaction", zap.Error(err))
+					continue
+				}
+
+				var updateStatus, event string
+				switch midtransRes.TransactionStatus {
+				case "cancel", "deny":
+					updateStatus = string(model.PaymentStatusFailed)
+					event = "payment.failed"
+				case "expire":
+					updateStatus = string(model.PaymentStatusExpired)
+					event = "payment.expired"
+				case "settlement", "capture":
+					updateStatus = string(model.PaymentStatusPaid)
+					event = "payment.success"
+				default:
+					continue
+				}
+
+				txCtx, err := s.trx.Begin(ctx)
+				if err != nil {
+					s.log.Error("failed to begin transactions", zap.Error(err))
+					continue
+				}
+
+				err = s.paymentRepo.Update(txCtx, p.ID, p.Version, map[string]any{
+					"status":     updateStatus,
+					"updated_at": now,
+					"version":    p.Version + 1,
+				})
+				if err != nil {
+					s.log.Error("failed to update status payment", zap.Error(err))
+					s.trx.Rollback(txCtx)
+					continue
+				}
+
+				eventPayload := map[string]any{
+					"order_id": p.OrderID,
+					"status":   updateStatus,
+					"reason":   midtransRes.StatusMessage,
+				}
+				outbox := model.Outbox{
+					ID:            uuid.NewString(),
+					AggregateType: "PAYMENT",
+					AggregateID:   p.OrderID,
+					EventType:     event,
+					Status:        model.OutboxStatusPending,
+					UpdatedAt:     now,
+				}
+				outbox.SetPayload(eventPayload)
+				err = s.outboxRepo.Create(txCtx, &outbox)
+				if err != nil {
+					s.log.Error("failed to create outbox", zap.Error(err))
+					s.trx.Rollback(txCtx)
+					continue
+				}
+
+				err = s.trx.Commit(txCtx)
+				if err != nil {
+					s.log.Error("failed to commit transaction", zap.Error(err))
+					s.trx.Rollback(txCtx)
+					continue
+				}
+
+			}
+		}
+	}
+}
+
+func (s *service) Cancel(ctx context.Context, req *model.EventPayload) error {
+	now := time.Now()
+
+	var payment model.Payment
+	filters := map[string]any{
+		"order_id": req.OrderID,
+		"user_id":  req.UserID,
+	}
+	err := s.paymentRepo.Get(ctx, filters, &payment)
+	if err != nil {
+		s.log.Error("failed to get payment data by id and user_id", zap.Error(err))
+		return err
+	}
+
+	txCtx, err := s.trx.Begin(ctx)
+	if err != nil {
+		s.log.Error("failed to begin transactions", zap.Error(err))
+		return err
+	}
+	defer s.trx.Rollback(txCtx)
+
+	inbox := model.Inbox{
+		ID:          uuid.NewString(),
+		MessageID:   req.MessageID,
+		EventName:   req.EventName,
+		ProcessedAt: now,
+	}
+	inserted, err := s.inboxRepo.Create(txCtx, &inbox)
+	if err != nil {
+		s.log.Error("failed to create inbox", zap.Error(err))
+		return err
+	}
+
+	if !inserted {
+		s.log.Info("message already processed", zap.String("id", req.MessageID))
+		return nil
+	}
+
+	err = s.gateway.CancelTransaction(ctx, payment.OrderID)
+	if err != nil {
+		s.log.Error("failed to cancel transaction", zap.Error(err))
+		return err
+	}
+
+	paymentReq := map[string]any{
+		"status":     string(model.PaymentStatusCanceled),
+		"updated_at": now,
+		"version":    payment.Version + 1,
+	}
+	err = s.paymentRepo.Update(txCtx, payment.ID, payment.Version, paymentReq)
+	if err != nil {
+		s.log.Error("failed to update payment status", zap.Error(err))
 		return err
 	}
 

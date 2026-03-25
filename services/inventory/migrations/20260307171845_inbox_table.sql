@@ -1,6 +1,6 @@
 -- +goose Up
 create table inbox (
-    id uuid primary key unique key,
+    id uuid primary key unique,
     message_id varchar(255) unique not null,
     handler_name varchar(100),
     processed_at timestamp default current_timestamp

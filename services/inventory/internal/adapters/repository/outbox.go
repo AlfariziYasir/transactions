@@ -31,14 +31,11 @@ func (r *outboxRepo) getExecutor(ctx context.Context) postgres.PgxExecutor {
 }
 
 func (r *outboxRepo) Create(ctx context.Context, outbox *model.Outbox) error {
-	query, args, err := psql.
-		Insert(outbox.TableName()).
+	query, args, _ := psql.
+		Insert((&model.Outbox{}).TableName()).
 		Columns(outbox.ColumnsNames()...).
 		Values(outbox.ToRow()...).
 		ToSql()
-	if err != nil {
-		return errorx.NewError(errorx.ErrTypeInternal, "failed to build query", err)
-	}
 
 	res, err := r.getExecutor(ctx).Exec(ctx, query, args...)
 	if err != nil {
@@ -46,7 +43,11 @@ func (r *outboxRepo) Create(ctx context.Context, outbox *model.Outbox) error {
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to insert outbox: no rows affected",
+			nil,
+		)
 	}
 
 	return nil
@@ -57,11 +58,7 @@ func (r *outboxRepo) Get(ctx context.Context, limit uint64) ([]*model.Outbox, er
 		Where(squirrel.Eq{"status": "PENDING"}).
 		Limit(limit)
 
-	sqlQuery, args, err := query.ToSql()
-	if err != nil {
-		return nil, errorx.NewError(errorx.ErrTypeInternal, "failed to build query", err)
-	}
-
+	sqlQuery, args, _ := query.ToSql()
 	rows, err := r.getExecutor(ctx).Query(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, errorx.DbError(err, err.Error())
@@ -80,7 +77,7 @@ func (r *outboxRepo) Update(ctx context.Context, id string, data map[string]any)
 		SetMap(data).
 		Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
-		return errorx.NewError(errorx.ErrTypeInternal, "failed to build query", err)
+		return errorx.NewError(errorx.ErrTypeInternal, "failed to build update query", err)
 	}
 
 	res, err := r.getExecutor(ctx).Exec(ctx, sqlQuery, args...)
@@ -89,7 +86,11 @@ func (r *outboxRepo) Update(ctx context.Context, id string, data map[string]any)
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to update outbox: no rows affected",
+			nil,
+		)
 	}
 
 	return nil

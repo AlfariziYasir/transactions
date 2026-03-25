@@ -5,7 +5,7 @@ add column customer_email varchar(100),
 add column payment_url text;
 
 create table inbox (
-    id uuid primary key unique key,
+    id uuid primary key unique,
     message_id varchar(255) unique not null,
     handler_name varchar(100),
     processed_at timestamp default current_timestamp

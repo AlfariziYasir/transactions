@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -220,6 +221,11 @@ func (s *service) List(ctx context.Context, userID, role string, req *model.List
 		return nil, 0, "", err
 	}
 
+	if len(orders) == 0 {
+		s.log.Error("record not found", zap.Error(errors.New("data is empty")))
+		return nil, 0, "", errorx.NewError(errorx.ErrTypeNotFound, "data is empty", nil)
+	}
+
 	nextPageToken := ""
 	if len(orders) == int(req.PageSize) {
 		nextOffset := offset + uint64(req.PageSize)
@@ -250,17 +256,34 @@ func (s *service) List(ctx context.Context, userID, role string, req *model.List
 func (s *service) Cancel(ctx context.Context, orderID, userID string) error {
 	var order model.Order
 	filters := map[string]any{
-		"id":      orderID,
-		"user_id": userID,
+		"id": orderID,
 	}
 	err := s.orderRepo.Get(ctx, filters, &order)
 	if err != nil {
-		s.log.Error("failed to get order by id and user_id", zap.Error(err))
+		s.log.Error("failed to get order by id", zap.Error(err))
 		return err
 	}
 
-	if order.Status != model.OrderStatusPending {
-		return errorx.NewError(errorx.ErrTypeValidation, "only order pending status be able to cancel", nil)
+	if order.UserID != userID {
+		return errorx.NewError(errorx.ErrTypeUnauthorized, "user doesn't have authorized to cancel this order", nil)
+	}
+
+	if order.Status != model.OrderStatusPending && order.Status != model.OrderStatusWaitingPayment {
+		return errorx.NewError(errorx.ErrTypeValidation, "only pending or waiting payment orders can be canceled", nil)
+	}
+
+	items, err := s.orderRepo.GetDetail(ctx, order.ID)
+	if err != nil {
+		s.log.Error("failed to get detail order include items", zap.Error(err))
+		return err
+	}
+
+	itemsEvent := []model.ItemRequest{}
+	for _, v := range items {
+		itemsEvent = append(itemsEvent, model.ItemRequest{
+			ProductID: v.ProductID,
+			Quantity:  v.Quantity,
+		})
 	}
 
 	txCtx, err := s.trx.Begin(ctx)
@@ -275,16 +298,18 @@ func (s *service) Cancel(ctx context.Context, orderID, userID string) error {
 		"updated_at": time.Now(),
 		"version":    order.Version + 1,
 	}
-	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
+	err = s.orderRepo.Update(txCtx, order.ID, order.Version, orderReq)
 	if err != nil {
 		s.log.Error("failed to update status order", zap.Error(err))
 		return err
 	}
 
 	eventPayload := map[string]any{
-		"order_id": order.ID,
-		"user_id":  order.UserID,
-		"reason":   "canceled order by user",
+		"order_id":   order.ID,
+		"user_id":    order.UserID,
+		"items":      itemsEvent,
+		"reason":     fmt.Sprintf("canceled order by user_id: %s", userID),
+		"event_time": time.Now(),
 	}
 	outbox := model.Outbox{
 		ID:            uuid.NewString(),
@@ -313,6 +338,30 @@ func (s *service) Cancel(ctx context.Context, orderID, userID string) error {
 func (s *service) Update(ctx context.Context, req *model.UpdateStatusOrder) error {
 	now := time.Now()
 
+	var order model.Order
+	filters := map[string]any{
+		"id": req.OrderID,
+	}
+	err := s.orderRepo.Get(ctx, filters, &order)
+	if err != nil {
+		s.log.Error("failed to get order by id and user_id", zap.Error(err))
+		return err
+	}
+
+	items, err := s.orderRepo.GetDetail(ctx, order.ID)
+	if err != nil {
+		s.log.Error("failed to get detail order include items", zap.Error(err))
+		return err
+	}
+
+	if !s.statusValidation(order.Status, req.Status) {
+		return errorx.NewError(
+			errorx.ErrTypeValidation,
+			fmt.Sprintf("invalid status transition from %s to %s", order.Status, req.Status),
+			nil,
+		)
+	}
+
 	txCtx, err := s.trx.Begin(ctx)
 	if err != nil {
 		s.log.Error("failed to begin transactions", zap.Error(err))
@@ -337,30 +386,12 @@ func (s *service) Update(ctx context.Context, req *model.UpdateStatusOrder) erro
 		return nil
 	}
 
-	var order model.Order
-	filters := map[string]any{
-		"id": req.OrderID,
-	}
-	err = s.orderRepo.Get(txCtx, filters, &order)
-	if err != nil {
-		s.log.Error("failed to get order by id and user_id", zap.Error(err))
-		return err
-	}
-
-	if !s.statusValidation(order.Status, req.Status) {
-		return errorx.NewError(
-			errorx.ErrTypeValidation,
-			fmt.Sprintf("invalid status transition from %s to %s", order.Status, req.Status),
-			nil,
-		)
-	}
-
 	orderReq := map[string]any{
 		"status":     string(req.Status),
 		"updated_at": now,
 		"version":    order.Version + 1,
 	}
-	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
+	err = s.orderRepo.Update(txCtx, order.ID, order.Version, orderReq)
 	if err != nil {
 		s.log.Error("failed to update status order", zap.Error(err))
 		return err
@@ -381,10 +412,20 @@ func (s *service) Update(ctx context.Context, req *model.UpdateStatusOrder) erro
 	}
 
 	if req.Status != model.OrderStatusPending {
+		itemsEvent := []model.ItemRequest{}
+		for _, v := range items {
+			itemsEvent = append(itemsEvent, model.ItemRequest{
+				ProductID: v.ProductID,
+				Quantity:  v.Quantity,
+			})
+		}
+
 		eventPayload := map[string]any{
-			"order_id": order.ID,
-			"user_id":  order.UserID,
-			"reason":   req.Reason,
+			"order_id":   order.ID,
+			"user_id":    order.UserID,
+			"reason":     req.Reason,
+			"items":      itemsEvent,
+			"event_time": time.Now(),
 		}
 		outbox := model.Outbox{
 			ID:            uuid.NewString(),
@@ -498,7 +539,7 @@ func (s *service) ReserveProcess(ctx context.Context, req *model.UpdateStatusOrd
 		"updated_at":  now,
 		"version":     order.Version + 1,
 	}
-	err = s.orderRepo.Update(txCtx, order.ID, orderReq)
+	err = s.orderRepo.Update(txCtx, order.ID, order.Version, orderReq)
 	if err != nil {
 		s.log.Error("failed to update status order", zap.Error(err))
 		return err

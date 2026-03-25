@@ -134,11 +134,13 @@ func main() {
 	}
 	defer orderCh.Close()
 
-	err = handler.NewOrderConsumer(svc, inboxRepo, l, orderCh).Start()
-	if err != nil {
-		l.Fatal("failed to start order consumer", zap.Error(err))
-		return
-	}
+	go func() {
+		err = handler.NewOrderConsumer(svc, l, orderCh).Start()
+		if err != nil {
+			l.Fatal("failed to start order consumer", zap.Error(err))
+			return
+		}
+	}()
 
 	outboxCh, err := rmqConn.Channel()
 	if err != nil {
@@ -168,7 +170,6 @@ func main() {
 		l.Fatal("failed to create new gateway grpc server", zap.Error(err))
 		return
 	}
-	defer grpcServer.Shutdown()
 
 	order.RegisterOrderServiceServer(grpcServer.Server, orderHandler)
 	reflection.Register(grpcServer.Server)
@@ -203,12 +204,6 @@ func main() {
 	)
 
 	go httpServer.Start()
-	defer func() {
-		if err = httpServer.Shutdown(); err != nil {
-			l.Fatal("failed to shutdown http server", zap.Error(err))
-			return
-		}
-	}()
 	l.Info("HTTP server started")
 
 	// Waiting signal
@@ -224,8 +219,13 @@ func main() {
 	}
 
 	l.Info("shutting down servers...")
-	grpcServer.Shutdown()
-	httpServer.Shutdown()
 	cancel()
+	time.Sleep(1 * time.Second)
+	if err := grpcServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown grpc server gracefully", zap.Error(err))
+	}
+	if err := httpServer.Shutdown(); err != nil {
+		l.Error("failed to shutdown http server gracefully", zap.Error(err))
+	}
 	l.Info("server exited properly")
 }

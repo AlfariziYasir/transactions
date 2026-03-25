@@ -45,7 +45,7 @@ func (r *repository) Create(ctx context.Context, user *model.User) error {
 }
 
 func (r *repository) Get(ctx context.Context, filters map[string]any, status bool, user *model.User) error {
-	query := psql.Select("*").From((&model.User{}).Tablename())
+	query := psql.Select((&model.User{}).ColumnsName()...).From((&model.User{}).Tablename())
 	for k, v := range filters {
 		query = query.Where(squirrel.Eq{k: v})
 	}
@@ -72,7 +72,7 @@ func (r *repository) Get(ctx context.Context, filters map[string]any, status boo
 }
 
 func (r *repository) List(ctx context.Context, limit, offset uint64, filters map[string]any) ([]*model.User, int, error) {
-	query := psql.Select("*").From((&model.User{}).Tablename())
+	query := psql.Select((&model.User{}).ColumnsName()...).From((&model.User{}).Tablename())
 	if len(filters) > 0 {
 		for k, v := range filters {
 			query = query.Where(squirrel.ILike{k: fmt.Sprintf("%%%s%%", v)})

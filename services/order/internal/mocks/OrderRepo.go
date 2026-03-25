@@ -153,17 +153,17 @@ func (_m *OrderRepo) List(ctx context.Context, limit uint64, offset uint64, req 
 	return r0, r1, r2
 }
 
-// Update provides a mock function with given fields: ctx, id, data
-func (_m *OrderRepo) Update(ctx context.Context, id string, data map[string]interface{}) error {
-	ret := _m.Called(ctx, id, data)
+// Update provides a mock function with given fields: ctx, id, currentVersion, data
+func (_m *OrderRepo) Update(ctx context.Context, id string, currentVersion int, data map[string]interface{}) error {
+	ret := _m.Called(ctx, id, currentVersion, data)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]interface{}) error); ok {
-		r0 = rf(ctx, id, data)
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, map[string]interface{}) error); ok {
+		r0 = rf(ctx, id, currentVersion, data)
 	} else {
 		r0 = ret.Error(0)
 	}

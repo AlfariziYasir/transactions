@@ -9,10 +9,11 @@ import (
 type PaymentStatus string
 
 const (
-	PaymentStatusPending PaymentStatus = "PENDING"
-	PaymentStatusPaid    PaymentStatus = "PAID"
-	PaymentStatusFailed  PaymentStatus = "FAILED"
-	PaymentStatusExpired PaymentStatus = "EXPIRED"
+	PaymentStatusPending  PaymentStatus = "PENDING"
+	PaymentStatusPaid     PaymentStatus = "PAID"
+	PaymentStatusFailed   PaymentStatus = "FAILED"
+	PaymentStatusCanceled PaymentStatus = "CANCELED"
+	PaymentStatusExpired  PaymentStatus = "EXPIRED"
 )
 
 type Payment struct {
@@ -30,6 +31,7 @@ type Payment struct {
 	PaidAt        *time.Time      `db:"paid_at" json:"paid_at"`
 	CreatedAt     time.Time       `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time       `db:"updated_at" json:"updated_at"`
+	Version       int             `db:"version" json:"version"`
 }
 
 func (p *Payment) TableName() string {
@@ -37,11 +39,11 @@ func (p *Payment) TableName() string {
 }
 
 func (p *Payment) ColumnsName() []string {
-	return []string{"id", "order_id", "user_id", "customer_name", "customer_email", "gateway", "method", "reference_id", "payment_url", "status", "amount", "paid_at", "created_at", "updated_at"}
+	return []string{"id", "order_id", "user_id", "customer_name", "customer_email", "gateway", "method", "reference_id", "payment_url", "status", "amount", "paid_at", "created_at", "updated_at", "version"}
 }
 
 func (p *Payment) ToRow() []any {
-	return []any{p.ID, p.OrderID, p.UserID, p.CustomerName, p.CustomerEmail, p.Gateway, p.Method, p.ReferenceID, p.PaymentURL, p.Status, p.Amount, p.PaidAt, p.CreatedAt, p.UpdatedAt}
+	return []any{p.ID, p.OrderID, p.UserID, p.CustomerName, p.CustomerEmail, p.Gateway, p.Method, p.ReferenceID, p.PaymentURL, p.Status, p.Amount, p.PaidAt, p.CreatedAt, p.UpdatedAt, p.Version}
 }
 
 type PaymentGatewayReq struct {
@@ -81,4 +83,13 @@ type WebhookPayload struct {
 	GrossAmount       string `json:"gross_amount"`
 	SignatureKey      string `json:"signature_key"`
 	PaymentType       string `json:"payment_type"`
+}
+
+type EventPayload struct {
+	MessageID string
+	EventName string
+	OrderID   string `json:"order_id"`
+	UserID    string `json:"user_id"`
+	Reason    string `json:"reason"`
+	EventTime string `json:"event_time"`
 }

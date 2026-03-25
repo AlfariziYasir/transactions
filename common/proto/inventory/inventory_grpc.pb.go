@@ -8,7 +8,6 @@ package inventory
 
 import (
 	context "context"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -34,10 +33,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InventoryServiceClient interface {
-	Create(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	Update(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	Delete(ctx context.Context, in *DeleteProductRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	Create(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*DynamicResponse, error)
+	Update(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*DynamicResponse, error)
+	Delete(ctx context.Context, in *DeleteProductRequest, opts ...grpc.CallOption) (*DynamicResponse, error)
+	AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*DynamicResponse, error)
 	Get(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*Product, error)
 	List(ctx context.Context, in *ListProductsRequest, opts ...grpc.CallOption) (*ListProductsResponse, error)
 	GetProducts(ctx context.Context, in *BatchGetProductsRequest, opts ...grpc.CallOption) (*BatchGetProductsResponse, error)
@@ -52,9 +51,9 @@ func NewInventoryServiceClient(cc grpc.ClientConnInterface) InventoryServiceClie
 	return &inventoryServiceClient{cc}
 }
 
-func (c *inventoryServiceClient) Create(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *inventoryServiceClient) Create(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*DynamicResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(empty.Empty)
+	out := new(DynamicResponse)
 	err := c.cc.Invoke(ctx, InventoryService_Create_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -62,9 +61,9 @@ func (c *inventoryServiceClient) Create(ctx context.Context, in *CreateProductRe
 	return out, nil
 }
 
-func (c *inventoryServiceClient) Update(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *inventoryServiceClient) Update(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*DynamicResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(empty.Empty)
+	out := new(DynamicResponse)
 	err := c.cc.Invoke(ctx, InventoryService_Update_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -72,9 +71,9 @@ func (c *inventoryServiceClient) Update(ctx context.Context, in *UpdateProductRe
 	return out, nil
 }
 
-func (c *inventoryServiceClient) Delete(ctx context.Context, in *DeleteProductRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *inventoryServiceClient) Delete(ctx context.Context, in *DeleteProductRequest, opts ...grpc.CallOption) (*DynamicResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(empty.Empty)
+	out := new(DynamicResponse)
 	err := c.cc.Invoke(ctx, InventoryService_Delete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -82,9 +81,9 @@ func (c *inventoryServiceClient) Delete(ctx context.Context, in *DeleteProductRe
 	return out, nil
 }
 
-func (c *inventoryServiceClient) AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *inventoryServiceClient) AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*DynamicResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(empty.Empty)
+	out := new(DynamicResponse)
 	err := c.cc.Invoke(ctx, InventoryService_AdjustStock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -136,10 +135,10 @@ func (c *inventoryServiceClient) StockAvailability(ctx context.Context, in *Chec
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility.
 type InventoryServiceServer interface {
-	Create(context.Context, *CreateProductRequest) (*empty.Empty, error)
-	Update(context.Context, *UpdateProductRequest) (*empty.Empty, error)
-	Delete(context.Context, *DeleteProductRequest) (*empty.Empty, error)
-	AdjustStock(context.Context, *AdjustStockRequest) (*empty.Empty, error)
+	Create(context.Context, *CreateProductRequest) (*DynamicResponse, error)
+	Update(context.Context, *UpdateProductRequest) (*DynamicResponse, error)
+	Delete(context.Context, *DeleteProductRequest) (*DynamicResponse, error)
+	AdjustStock(context.Context, *AdjustStockRequest) (*DynamicResponse, error)
 	Get(context.Context, *GetProductRequest) (*Product, error)
 	List(context.Context, *ListProductsRequest) (*ListProductsResponse, error)
 	GetProducts(context.Context, *BatchGetProductsRequest) (*BatchGetProductsResponse, error)
@@ -154,16 +153,16 @@ type InventoryServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInventoryServiceServer struct{}
 
-func (UnimplementedInventoryServiceServer) Create(context.Context, *CreateProductRequest) (*empty.Empty, error) {
+func (UnimplementedInventoryServiceServer) Create(context.Context, *CreateProductRequest) (*DynamicResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedInventoryServiceServer) Update(context.Context, *UpdateProductRequest) (*empty.Empty, error) {
+func (UnimplementedInventoryServiceServer) Update(context.Context, *UpdateProductRequest) (*DynamicResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedInventoryServiceServer) Delete(context.Context, *DeleteProductRequest) (*empty.Empty, error) {
+func (UnimplementedInventoryServiceServer) Delete(context.Context, *DeleteProductRequest) (*DynamicResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedInventoryServiceServer) AdjustStock(context.Context, *AdjustStockRequest) (*empty.Empty, error) {
+func (UnimplementedInventoryServiceServer) AdjustStock(context.Context, *AdjustStockRequest) (*DynamicResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdjustStock not implemented")
 }
 func (UnimplementedInventoryServiceServer) Get(context.Context, *GetProductRequest) (*Product, error) {

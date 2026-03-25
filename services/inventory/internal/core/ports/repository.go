@@ -31,5 +31,4 @@ type OutboxRepo interface {
 
 type InboxRepo interface {
 	Create(ctx context.Context, inbox *model.Inbox) (bool, error)
-	Get(ctx context.Context, messageId string) (bool, error)
 }

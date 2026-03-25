@@ -47,7 +47,11 @@ func (r *orderRepo) Create(ctx context.Context, order *model.Order) error {
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to insert order: no rows affected",
+			nil,
+		)
 	}
 
 	return nil
@@ -160,10 +164,12 @@ func (r *orderRepo) List(ctx context.Context, limit, offset uint64, filters map[
 	return orders, count, nil
 }
 
-func (r *orderRepo) Update(ctx context.Context, id string, data map[string]any) error {
+func (r *orderRepo) Update(ctx context.Context, id string, currentVersion int, data map[string]any) error {
 	sqlQuery, args, err := psql.Update((&model.Order{}).TableName()).
 		SetMap(data).
-		Where(squirrel.Eq{"id": id}).ToSql()
+		Where(squirrel.Eq{"id": id}).
+		Where(squirrel.Eq{"version": currentVersion}).
+		ToSql()
 	if err != nil {
 		return errorx.NewError(errorx.ErrTypeInternal, "failed to build update query", err)
 	}
@@ -174,7 +180,11 @@ func (r *orderRepo) Update(ctx context.Context, id string, data map[string]any) 
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeValidation,
+			"failed to update order: record not found or version conflict (data modified by another process)",
+			pgx.ErrNoRows,
+		)
 	}
 
 	return nil

@@ -23,6 +23,7 @@ type Config struct {
 	RabbitMQUrl      string `env:"RABBITMQ_URL"`
 	SwaggerPath      string `env:"SWAGGER_PATH"`
 	WebhookServerKey string `env:"WEBHOOK_SERVER_KEY"`
+	PaymentExpired   int    `env:"PAYMENT_EXPIRED"`
 }
 
 func NewConfig() (*Config, error) {

@@ -4,10 +4,10 @@ package order.v1;
 
 option go_package = "github.com/AlfariziYasir/transactions/common/proto/order";
 
+import "google/protobuf/struct.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
 
@@ -64,11 +64,11 @@ service OrderService {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
         summary: "list order history";
-        tags: "Order Public";
+        tags: "Order";
     };
   }
 
-  rpc Cancel(CancelOrderRequest) returns (google.protobuf.Empty) {
+  rpc Cancel(CancelOrderRequest) returns (DynamicResponse) {
     option (google.api.http) = {
         post: "/v1/orders/{order_id}/cancel"
         body: "*"
@@ -76,7 +76,7 @@ service OrderService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
         summary: "Canceled Order";
         description: "User can be cancel order when status pending.";
-        tags: "Order Public";
+        tags: "Order";
     };
   }
 }
@@ -135,6 +135,14 @@ message CreateOrderRequest {
         (google.api.field_behavior) = REQUIRED,
         (validate.rules).string.min_len = 5
     ];
+    string customer_name = 3 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.min_len = 5
+    ];
+    string customer_email = 4 [
+        (google.api.field_behavior) = REQUIRED,
+        (validate.rules).string.email = true
+    ];
 }
 
 message GetOrderRequest {
@@ -171,4 +179,9 @@ message CancelOrderRequest {
         (google.api.field_behavior) = REQUIRED,
         (validate.rules).string.min_len = 1
     ];;
+}
+
+message DynamicResponse {
+  string message = 1;
+  google.protobuf.Value data = 2;
 }

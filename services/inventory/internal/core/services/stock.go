@@ -47,6 +47,7 @@ func (s *stockService) Adjust(ctx context.Context, req *model.AdjustStock) error
 	err = s.stockRepo.Adjust(txCtx, req.ProductID, req.AdjustmentQuantity)
 	if err != nil {
 		s.log.Error("failed to adjust stock", zap.Error(err))
+		return err
 	}
 
 	logType := model.LogTypeAdjustment
@@ -68,6 +69,7 @@ func (s *stockService) Adjust(ctx context.Context, req *model.AdjustStock) error
 	err = s.stockRepo.InsertLog(ctx, &stockLog)
 	if err != nil {
 		s.log.Error("failed to create stock log", zap.Error(err))
+		return err
 	}
 
 	return s.trx.Commit(txCtx)
@@ -237,7 +239,7 @@ func (s *stockService) Release(ctx context.Context, req *model.OrderEvent) error
 			Type:        model.LogTypeRelease,
 			Quantity:    item.Quantity,
 			ReferenceID: req.OrderID,
-			Reason:      "order canceled",
+			Reason:      req.Reason,
 			CreatedAt:   now,
 		}
 		err = s.stockRepo.InsertLog(txCtx, &stockLog)

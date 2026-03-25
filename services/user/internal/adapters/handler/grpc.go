@@ -122,7 +122,7 @@ func (h *handler) Get(ctx context.Context, req *user.IdRequest) (*user.User, err
 
 func (h *handler) List(ctx context.Context, req *user.ListRequest) (*user.ListResponse, error) {
 	role, ok := ctx.Value(middleware.UserRole).(string)
-	if ok || role == "" {
+	if !ok || role == "" {
 		return nil, status.Error(codes.Unauthenticated, "missing token")
 	}
 

@@ -7,4 +7,5 @@ const (
 	UserRole  ContextKey = "role"
 	TokenUuid ContextKey = "token_uuid"
 	RefUuid   ContextKey = "ref_uuid"
+	AccUuid   ContextKey = "acc_uuid"
 )

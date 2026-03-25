@@ -43,7 +43,11 @@ func (r *paymentRepo) Create(ctx context.Context, payment *model.Payment) error 
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeInternal,
+			"failed to insert payment: no rows affected",
+			nil,
+		)
 	}
 
 	return nil
@@ -72,10 +76,32 @@ func (r *paymentRepo) Get(ctx context.Context, filters map[string]any, payment *
 	return nil
 }
 
-func (r *paymentRepo) Update(ctx context.Context, id string, data map[string]any) error {
+func (r *paymentRepo) GetStatus(ctx context.Context, duration int) ([]*model.Payment, error) {
+	sqlQuery, args, _ := psql.Select("*").From((&model.Payment{}).TableName()).
+		Where(squirrel.Eq{"status": string(model.PaymentStatusPending)}).
+		Where(squirrel.Expr("created_at <= now() - interval '? minutes'", duration)).
+		ToSql()
+
+	rows, err := r.getExecutor(ctx).Query(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, errorx.DbError(err, err.Error())
+	}
+	defer rows.Close()
+
+	payments, err := pgx.CollectRows(rows, pgx.RowToAddrOfStructByName[model.Payment])
+	if err != nil {
+		return nil, errorx.DbError(err, err.Error())
+	}
+
+	return payments, nil
+}
+
+func (r *paymentRepo) Update(ctx context.Context, id string, currentVersion int, data map[string]any) error {
 	sqlQuery, args, err := psql.Update((&model.Payment{}).TableName()).
 		SetMap(data).
-		Where(squirrel.Eq{"id": id}).ToSql()
+		Where(squirrel.Eq{"id": id}).
+		Where(squirrel.Eq{"version": currentVersion}).
+		ToSql()
 	if err != nil {
 		return errorx.NewError(errorx.ErrTypeInternal, "failed to build update query", err)
 	}
@@ -86,7 +112,11 @@ func (r *paymentRepo) Update(ctx context.Context, id string, data map[string]any
 	}
 
 	if res.RowsAffected() == 0 {
-		return errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
+		return errorx.NewError(
+			errorx.ErrTypeValidation,
+			"failed to update payment: record not found or version conflict (data modified by another process)",
+			pgx.ErrNoRows,
+		)
 	}
 
 	return nil

@@ -68,7 +68,7 @@
           }
         ],
         "tags": [
-          "Order Public"
+          "Order"
         ]
       },
       "post": {
@@ -144,8 +144,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "type": "object",
-              "properties": {}
+              "$ref": "#/definitions/v1DynamicResponse"
             }
           },
           "default": {
@@ -172,7 +171,7 @@
           }
         ],
         "tags": [
-          "Order Public"
+          "Order"
         ]
       }
     }
@@ -214,6 +213,14 @@
       },
       "additionalProperties": {}
     },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
     "rpcStatus": {
       "type": "object",
       "properties": {
@@ -253,12 +260,29 @@
         },
         "shippingAddress": {
           "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "customerEmail": {
+          "type": "string"
         }
       },
       "required": [
         "items",
-        "shippingAddress"
+        "shippingAddress",
+        "customerName",
+        "customerEmail"
       ]
+    },
+    "v1DynamicResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "data": {}
+      }
     },
     "v1ListOrderResponse": {
       "type": "object",

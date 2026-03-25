@@ -34,20 +34,21 @@ func NewAuthInterceptor(
 		log:   log,
 		cache: cache,
 		publicMethod: map[string]bool{
-			"/user.v1.UserService/Login":  true,
-			"/user.v1.UserService/Create": true,
+			"/user.v1.UserService/Login":        true,
+			"/user.v1.UserService/Create":       true,
+			"/payment.v1.PaymentService/Create": true,
 		},
 		accessibleRoles: map[string][]string{
 			"/user.v1.UserService/Refresh":                     {RoleAdmin, RoleUser},
 			"/user.v1.UserService/Logout":                      {RoleAdmin, RoleUser},
 			"/user.v1.UserService/Get":                         {RoleAdmin, RoleUser},
 			"/user.v1.UserService/List":                        {RoleAdmin, RoleUser},
-			"/user.v1.UserService/Update ":                     {RoleAdmin, RoleUser},
-			"/user.v1.UserService/Delete ":                     {RoleAdmin, RoleUser},
-			"/order.v1.OrderService/Create ":                   {RoleAdmin, RoleUser},
-			"/order.v1.OrderService/Get ":                      {RoleAdmin, RoleUser},
-			"/order.v1.OrderService/List ":                     {RoleAdmin, RoleUser},
-			"/order.v1.OrderService/Cancel ":                   {RoleAdmin, RoleUser},
+			"/user.v1.UserService/Update":                      {RoleAdmin, RoleUser},
+			"/user.v1.UserService/Delete":                      {RoleAdmin, RoleUser},
+			"/order.v1.OrderService/Create":                    {RoleAdmin, RoleUser},
+			"/order.v1.OrderService/Get":                       {RoleAdmin, RoleUser},
+			"/order.v1.OrderService/List":                      {RoleAdmin, RoleUser},
+			"/order.v1.OrderService/Cancel":                    {RoleAdmin, RoleUser},
 			"/inventory.v1.InventoryService/Create":            {RoleAdmin},
 			"/inventory.v1.InventoryService/Update":            {RoleAdmin},
 			"/inventory.v1.InventoryService/Delete":            {RoleAdmin},
@@ -69,7 +70,7 @@ func (i *AuthInterceptor) Unary(accKey, refKey string) grpc.UnaryServerIntercept
 		}
 
 		key := ""
-		if info.FullMethod == "/user_service.v1.UserService/Refresh" {
+		if info.FullMethod == "/user.v1.UserService/Refresh" {
 			key = refKey
 		} else {
 			key = accKey
@@ -107,9 +108,9 @@ func (i *AuthInterceptor) Unary(accKey, refKey string) grpc.UnaryServerIntercept
 			return nil, status.Error(codes.Unauthenticated, "invalid token payload: missing unique key")
 		}
 
-		if info.FullMethod == "/user_service.v1.UserService/Refresh" {
+		if info.FullMethod == "/user.v1.UserService/Refresh" {
 			val, err := i.cache.Get(ctx, fmt.Sprintf("%s:%s", auth.RefKey, tokenUuid))
-			if err == nil && val != "" {
+			if val == "" {
 				i.log.Warn("attempt to use revoked token", zap.String("user_id", userID))
 				return nil, status.Error(codes.Unauthenticated, "token has been revoked")
 			}
@@ -120,7 +121,7 @@ func (i *AuthInterceptor) Unary(accKey, refKey string) grpc.UnaryServerIntercept
 			}
 		} else {
 			val, err := i.cache.Get(ctx, fmt.Sprintf("%s:%s", auth.BlacklistKey, tokenUuid))
-			if err == nil && val != "" {
+			if val != "" {
 				i.log.Warn("attempt to use revoked token", zap.String("user_id", userID))
 				return nil, status.Error(codes.Unauthenticated, "token has been revoked")
 			}
@@ -167,8 +168,6 @@ func (i *AuthInterceptor) extractToken(ctx context.Context) (string, error) {
 	if !ok {
 		return "", status.Error(codes.Unauthenticated, "metadata is not provided")
 	}
-
-	fmt.Println("metadata", md)
 
 	values := md["authorization"]
 	if len(values) == 0 {

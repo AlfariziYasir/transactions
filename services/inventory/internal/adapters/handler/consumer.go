@@ -15,23 +15,20 @@ import (
 )
 
 type stockConsumer struct {
-	svc       ports.StockService
-	inboxRepo ports.InboxRepo
-	ch        *amqp091.Channel
-	log       *logger.Logger
+	svc ports.StockService
+	ch  *amqp091.Channel
+	log *logger.Logger
 }
 
 func NewStockConsumer(
 	svc ports.StockService,
-	inboxRepo ports.InboxRepo,
 	ch *amqp091.Channel,
 	log *logger.Logger,
 ) *stockConsumer {
 	return &stockConsumer{
-		svc:       svc,
-		inboxRepo: inboxRepo,
-		ch:        ch,
-		log:       log,
+		svc: svc,
+		ch:  ch,
+		log: log,
 	}
 }
 
@@ -105,21 +102,8 @@ func (c *stockConsumer) processMessage(msg amqp091.Delivery) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	exists, err := c.inboxRepo.Get(ctx, msg.MessageId)
-	if err != nil {
-		c.log.Error("failed to get inbox by message id", zap.Error(err))
-		msg.Nack(false, true)
-		return
-	}
-
-	if exists {
-		c.log.Info("message already processed, skipping", zap.String("message_id", msg.MessageId))
-		msg.Ack(false)
-		return
-	}
-
 	var event model.OrderEvent
-	err = json.Unmarshal(msg.Body, &event)
+	err := json.Unmarshal(msg.Body, &event)
 	if err != nil {
 		c.log.Error("invalid json payload", zap.Error(err))
 		msg.Nack(false, false)
@@ -144,19 +128,22 @@ func (c *stockConsumer) processMessage(msg amqp091.Delivery) {
 	if err != nil {
 		appErr, ok := errors.AsType[*errorx.AppError](err)
 		if ok && appErr.Type == errorx.ErrTypeValidation {
-			c.log.Warn("business validation error, discarding message", zap.Error(err))
+			c.log.Warn("idempotency check / invalid state transition, discarding message",
+				zap.String("routing_key", msg.RoutingKey),
+				zap.Error(err),
+			)
 			msg.Ack(false)
 			return
 		}
 
 		if ok && appErr.Type == errorx.ErrTypeInternal {
-			c.log.Error("invalid payload format, routing to DLX", zap.Error(err))
-			msg.Nack(false, false)
+			c.log.Error("internal server error, requeueing", zap.Error(err))
+			msg.Nack(false, true)
 			return
 		}
 
-		c.log.Error("failed to process message, requeueing", zap.Error(err))
-		msg.Nack(false, true)
+		c.log.Error("unrecoverable error, routing to DLX", zap.Error(err))
+		msg.Nack(false, false)
 		return
 	}
 

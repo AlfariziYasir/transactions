@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -51,8 +52,6 @@ func (s *userService) Login(ctx context.Context, req model.UserRequest) (string,
 		return "", "", err
 	}
 
-	fmt.Println("data user:", user)
-
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
 		s.log.Error("password invalid", zap.Error(err))
@@ -78,10 +77,14 @@ func (s *userService) Login(ctx context.Context, req model.UserRequest) (string,
 		return "", "", errorx.NewError(errorx.ErrTypeInternal, "failed create token", err)
 	}
 
+	val := map[string]any{
+		"acc_uuid": baseToken.AccUuid,
+		"user_id":  user.ID,
+	}
 	err = s.cache.Set(
 		ctx,
 		fmt.Sprintf("%s:%s", auth.RefKey, baseToken.RefUuid),
-		user.ID,
+		val,
 		baseToken.RefDuration,
 	)
 	if err != nil {
@@ -117,6 +120,7 @@ func (s *userService) Logout(ctx context.Context, accUuid, refUuid string) error
 }
 
 func (s *userService) Refresh(ctx context.Context, refUuid, userId, role string) (string, error) {
+	var cache map[string]any
 	value, err := s.cache.Get(ctx, fmt.Sprintf("%s:%s", auth.RefKey, refUuid))
 	if err != nil {
 		s.log.Error("failed get refresh token", zap.Error(err))
@@ -126,6 +130,18 @@ func (s *userService) Refresh(ctx context.Context, refUuid, userId, role string)
 	if value == "" {
 		s.log.Error("refresh token value is empty")
 		return "", errorx.NewError(errorx.ErrTypeUnauthorized, "token invalid", errors.New("refresh token value is empty"))
+	}
+	json.Unmarshal([]byte(string(value)), &cache)
+
+	err = s.cache.Set(
+		ctx,
+		fmt.Sprintf("%s:%s", auth.BlacklistKey, cache["acc_uuid"].(string)),
+		"revoked",
+		s.cfg.AccessTokenExp,
+	)
+	if err != nil {
+		s.log.Error("failed to store refresh auth", zap.Error(err))
+		return "", errorx.NewError(errorx.ErrTypeInternal, "failed to store refresh auth", err)
 	}
 
 	baseToken := auth.BaseRequest{
@@ -142,6 +158,21 @@ func (s *userService) Refresh(ctx context.Context, refUuid, userId, role string)
 	if err != nil {
 		s.log.Error("failed generate token", zap.Error(err))
 		return "", errorx.NewError(errorx.ErrTypeInternal, "failed create token", err)
+	}
+
+	val := map[string]any{
+		"acc_uuid": baseToken.AccUuid,
+		"user_id":  userId,
+	}
+	err = s.cache.Set(
+		ctx,
+		fmt.Sprintf("%s:%s", auth.RefKey, refUuid),
+		val,
+		baseToken.RefDuration,
+	)
+	if err != nil {
+		s.log.Error("failed to store refresh auth", zap.Error(err))
+		return "", errorx.NewError(errorx.ErrTypeInternal, "failed to store refresh auth", err)
 	}
 
 	return acc, nil
@@ -167,7 +198,9 @@ func (s *userService) Create(ctx context.Context, req model.UserRequest) (*model
 	user.Role = req.Role
 	user.Password = string(hashPass)
 	user.CreatedAt.Time = time.Now()
+	user.CreatedAt.Valid = true
 	user.UpdatedAt.Time = time.Now()
+	user.UpdatedAt.Valid = true
 	err = s.repo.Create(ctx, &user)
 	if err != nil {
 		s.log.Error("failed to create user", zap.Error(err))

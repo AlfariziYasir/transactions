@@ -62,7 +62,7 @@ type StockLog struct {
 }
 
 func (s *StockLog) TableName() string {
-	return "stock_log"
+	return "stock_logs"
 }
 
 func (s *StockLog) ColumnsName() []string {

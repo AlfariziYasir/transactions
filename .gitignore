@@ -1,1 +1,4 @@
-./services/*/.env
+services/user/.env
+services/order/.env
+services/inventory/.env
+services/payment/.env

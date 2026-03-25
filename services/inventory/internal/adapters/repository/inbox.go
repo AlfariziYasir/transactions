@@ -2,14 +2,11 @@ package repository
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
 	"github.com/AlfariziYasir/transactions/services/inventory/internal/core/model"
 	"github.com/AlfariziYasir/transactions/services/inventory/internal/core/ports"
-	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -36,38 +33,16 @@ func (r *inboxRepo) Create(ctx context.Context, inbox *model.Inbox) (bool, error
 	query, args, _ := psql.Insert(inbox.TableName()).
 		Columns(inbox.Columns()...).
 		Values(inbox.ToRow()...).
+		Suffix("on conflict (message_id) do nothing").
 		ToSql()
 
-	res, err := r.getExecutor(ctx).Exec(ctx, query, args)
+	res, err := r.getExecutor(ctx).Exec(ctx, query, args...)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate key value") {
-			return false, nil
-		}
-
-		return false, errorx.DbError(err, err.Error())
+		return false, errorx.DbError(err, "failed to execute insert inbox")
 	}
 
 	if res.RowsAffected() == 0 {
-		return false, errorx.NewError(errorx.ErrTypeNotFound, "record not found", pgx.ErrNoRows)
-	}
-
-	return true, nil
-}
-
-func (r *inboxRepo) Get(ctx context.Context, messageId string) (bool, error) {
-	query, args, _ := psql.Select("1").
-		From((&model.Inbox{}).TableName()).
-		Where(squirrel.Eq{"message_id": messageId}).
-		ToSql()
-
-	var found int
-	err := r.getExecutor(ctx).QueryRow(ctx, query, args...).Scan(&found)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
-		}
-
-		return false, errorx.DbError(err, err.Error())
+		return false, nil
 	}
 
 	return true, nil

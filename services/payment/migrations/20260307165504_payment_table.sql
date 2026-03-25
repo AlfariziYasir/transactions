@@ -13,7 +13,7 @@ create table payments (
     status varchar(20) not null default 'PENDING',
     paid_at timestamp,
     created_at timestamp default current_timestamp,
-    updated_at timestamp default current_timestamp,
+    updated_at timestamp default current_timestamp
 );
 
 create index idx_payments_order_id on payments(order_id);
@@ -21,7 +21,7 @@ create index idx_payments_user_id on payments(user_id);
 create index idx_payments_reference_id on payments(reference_id);
 
 create table inbox (
-    id uuid primary key unique key,
+    id uuid primary key unique,
     message_id varchar(255) unique not null,
     handler_name varchar(100),
     processed_at timestamp default current_timestamp

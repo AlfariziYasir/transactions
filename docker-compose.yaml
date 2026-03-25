@@ -110,7 +110,8 @@ services:
       - REDIS_PASSWORD=redis123
       - REDIS_DB=1
       - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
-      - SWAGGER_PATH=,/app/common/docs/order_api.swagger.json
+      - SWAGGER_PATH=/app/common/docs/order_api.swagger.json
+      - PAYMENT_CLIENT="payment-svc:8083"
     ports:
       - "50052:50052"
       - "8081:8081"

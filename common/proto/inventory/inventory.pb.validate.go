@@ -1512,7 +1512,7 @@ func (m *AdjustStockRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetAdjustmentQuantity() != 0 {
+	if m.GetQuantity() != 0 {
 
 	}
 
@@ -2072,3 +2072,134 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = CheckStockResponseValidationError{}
+
+// Validate checks the field values on DynamicResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *DynamicResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on DynamicResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// DynamicResponseMultiError, or nil if none found.
+func (m *DynamicResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *DynamicResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Message
+
+	if all {
+		switch v := interface{}(m.GetData()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, DynamicResponseValidationError{
+					field:  "Data",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, DynamicResponseValidationError{
+					field:  "Data",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetData()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return DynamicResponseValidationError{
+				field:  "Data",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return DynamicResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// DynamicResponseMultiError is an error wrapping multiple validation errors
+// returned by DynamicResponse.ValidateAll() if the designated constraints
+// aren't met.
+type DynamicResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m DynamicResponseMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m DynamicResponseMultiError) AllErrors() []error { return m }
+
+// DynamicResponseValidationError is the validation error returned by
+// DynamicResponse.Validate if the designated constraints aren't met.
+type DynamicResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e DynamicResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e DynamicResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e DynamicResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e DynamicResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e DynamicResponseValidationError) ErrorName() string { return "DynamicResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e DynamicResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sDynamicResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = DynamicResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = DynamicResponseValidationError{}

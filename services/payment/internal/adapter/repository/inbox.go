@@ -5,8 +5,8 @@ import (
 
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
-	"github.com/AlfariziYasir/transactions/services/order/internal/core/model"
-	"github.com/AlfariziYasir/transactions/services/order/internal/core/ports"
+	"github.com/AlfariziYasir/transactions/services/payment/internal/core/model"
+	"github.com/AlfariziYasir/transactions/services/payment/internal/core/ports"
 	"github.com/jackc/pgx/v5"
 )
 

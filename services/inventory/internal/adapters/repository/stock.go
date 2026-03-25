@@ -112,7 +112,7 @@ func (r *stockRepo) Adjust(ctx context.Context, productID string, quantity int) 
 		Set("version", squirrel.Expr("version + 1")).
 		Set("updated_at", time.Now()).
 		Where(squirrel.Eq{"product_id": productID}).
-		Where(squirrel.Expr("(quantity + $1) >= reserved_quantity", quantity)).
+		Where(squirrel.Expr("(quantity + ?) >= reserved_quantity", quantity)).
 		ToSql()
 	if err != nil {
 		return errorx.NewError(errorx.ErrTypeInternal, "failed to build query", err)

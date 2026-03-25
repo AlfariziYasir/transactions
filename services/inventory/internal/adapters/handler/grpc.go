@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -36,7 +35,7 @@ func NewHandler(
 	}
 }
 
-func (h *inventoryHandler) Create(ctx context.Context, req *inventory.CreateProductRequest) (*emptypb.Empty, error) {
+func (h *inventoryHandler) Create(ctx context.Context, req *inventory.CreateProductRequest) (*inventory.DynamicResponse, error) {
 	price, err := decimal.NewFromString(req.Price)
 	if err != nil {
 		h.log.Error("failed convert from string", zap.Error(err))
@@ -44,10 +43,11 @@ func (h *inventoryHandler) Create(ctx context.Context, req *inventory.CreateProd
 	}
 
 	product := model.CreateProduct{
-		SKU:         req.Sku,
-		Name:        req.Name,
-		Description: req.Description,
-		Price:       price,
+		SKU:          req.Sku,
+		Name:         req.Name,
+		Description:  req.Description,
+		Price:        price,
+		InitialStock: int(req.InitialStock),
 	}
 	err = h.productSvc.Create(ctx, &product)
 	if err != nil {
@@ -55,9 +55,12 @@ func (h *inventoryHandler) Create(ctx context.Context, req *inventory.CreateProd
 		return nil, errorx.MapError(err, h.log)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &inventory.DynamicResponse{
+		Message: "create product is successfully",
+	}, nil
 }
-func (h *inventoryHandler) Update(ctx context.Context, req *inventory.UpdateProductRequest) (*emptypb.Empty, error) {
+
+func (h *inventoryHandler) Update(ctx context.Context, req *inventory.UpdateProductRequest) (*inventory.DynamicResponse, error) {
 	price, err := decimal.NewFromString(req.Price)
 	if err != nil {
 		h.log.Error("failed convert from string", zap.Error(err))
@@ -76,21 +79,25 @@ func (h *inventoryHandler) Update(ctx context.Context, req *inventory.UpdateProd
 		return nil, errorx.MapError(err, h.log)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &inventory.DynamicResponse{
+		Message: "update product is successfully",
+	}, nil
 }
-func (h *inventoryHandler) Delete(ctx context.Context, req *inventory.DeleteProductRequest) (*emptypb.Empty, error) {
+func (h *inventoryHandler) Delete(ctx context.Context, req *inventory.DeleteProductRequest) (*inventory.DynamicResponse, error) {
 	err := h.productSvc.Delete(ctx, req.GetId())
 	if err != nil {
 		h.log.Error("failed to delete product", zap.Error(err))
 		return nil, errorx.MapError(err, h.log)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &inventory.DynamicResponse{
+		Message: "update product is successfully",
+	}, nil
 }
-func (h *inventoryHandler) AdjustStock(ctx context.Context, req *inventory.AdjustStockRequest) (*emptypb.Empty, error) {
+func (h *inventoryHandler) AdjustStock(ctx context.Context, req *inventory.AdjustStockRequest) (*inventory.DynamicResponse, error) {
 	stock := model.AdjustStock{
-		ProductID:          req.GetProductId(),
-		AdjustmentQuantity: int(req.GetAdjustmentQuantity()),
+		ProductID:          req.ProductId,
+		AdjustmentQuantity: int(req.Quantity),
 		Reason:             req.GetReason(),
 	}
 
@@ -100,7 +107,9 @@ func (h *inventoryHandler) AdjustStock(ctx context.Context, req *inventory.Adjus
 		return nil, errorx.MapError(err, h.log)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &inventory.DynamicResponse{
+		Message: "stock has been adjusted",
+	}, nil
 }
 func (h *inventoryHandler) Get(ctx context.Context, req *inventory.GetProductRequest) (*inventory.Product, error) {
 	product, err := h.productSvc.Get(ctx, req.GetId())

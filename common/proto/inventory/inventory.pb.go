@@ -8,7 +8,8 @@ package inventory
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	empty "github.com/golang/protobuf/ptypes/empty"
+	_ "github.com/golang/protobuf/ptypes/empty"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -691,12 +692,12 @@ func (x *BatchGetProductsResponse) GetProducts() []*Product {
 }
 
 type AdjustStockRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	ProductId          string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	AdjustmentQuantity int32                  `protobuf:"varint,2,opt,name=adjustment_quantity,json=adjustmentQuantity,proto3" json:"adjustment_quantity,omitempty"`
-	Reason             string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	Quantity      int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AdjustStockRequest) Reset() {
@@ -736,9 +737,9 @@ func (x *AdjustStockRequest) GetProductId() string {
 	return ""
 }
 
-func (x *AdjustStockRequest) GetAdjustmentQuantity() int32 {
+func (x *AdjustStockRequest) GetQuantity() int32 {
 	if x != nil {
-		return x.AdjustmentQuantity
+		return x.Quantity
 	}
 	return 0
 }
@@ -950,11 +951,63 @@ func (x *CheckStockResponse) GetOutOfStockProductIds() []string {
 	return nil
 }
 
+type DynamicResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Data          *_struct.Value         `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DynamicResponse) Reset() {
+	*x = DynamicResponse{}
+	mi := &file_proto_inventory_inventory_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DynamicResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DynamicResponse) ProtoMessage() {}
+
+func (x *DynamicResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_inventory_inventory_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DynamicResponse.ProtoReflect.Descriptor instead.
+func (*DynamicResponse) Descriptor() ([]byte, []int) {
+	return file_proto_inventory_inventory_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *DynamicResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *DynamicResponse) GetData() *_struct.Value {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 var File_proto_inventory_inventory_proto protoreflect.FileDescriptor
 
 const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\n" +
-	"\x1fproto/inventory/inventory.proto\x12\finventory.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\xd3\x02\n" +
+	"\x1fproto/inventory/inventory.proto\x12\finventory.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\xd3\x02\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12\x12\n" +
@@ -1019,12 +1072,12 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\x17BatchGetProductsRequest\x12\x1d\n" +
 	"\x03ids\x18\x01 \x03(\tB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x03ids\"M\n" +
 	"\x18BatchGetProductsResponse\x121\n" +
-	"\bproducts\x18\x01 \x03(\v2\x15.inventory.v1.ProductR\bproducts\"\xa1\x01\n" +
+	"\bproducts\x18\x01 \x03(\v2\x15.inventory.v1.ProductR\bproducts\"\x8c\x01\n" +
 	"\x12AdjustStockRequest\x12*\n" +
 	"\n" +
-	"product_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\tproductId\x12;\n" +
-	"\x13adjustment_quantity\x18\x02 \x01(\x05B\n" +
-	"\xe0A\x02\xfaB\x04\x1a\x02@\x01R\x12adjustmentQuantity\x12\"\n" +
+	"product_id\x18\x01 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\tproductId\x12&\n" +
+	"\bquantity\x18\x02 \x01(\x05B\n" +
+	"\xe0A\x02\xfaB\x04\x1a\x02@\x01R\bquantity\x12\"\n" +
 	"\x06reason\x18\x03 \x01(\tB\n" +
 	"\xe0A\x02\xfaB\x04r\x02\x10\n" +
 	"R\x06reason\"U\n" +
@@ -1040,15 +1093,19 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\x05items\x18\x01 \x03(\v2\x17.inventory.v1.ItemCheckB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\"o\n" +
 	"\x12CheckStockResponse\x12!\n" +
 	"\fis_available\x18\x01 \x01(\bR\visAvailable\x126\n" +
-	"\x18out_of_stock_product_ids\x18\x02 \x03(\tR\x14outOfStockProductIds2\xec\t\n" +
-	"\x10InventoryService\x12\x85\x01\n" +
-	"\x06Create\x12\".inventory.v1.CreateProductRequest\x1a\x16.google.protobuf.Empty\"?\x92A\x1f\n" +
-	"\aproduct\x12\x14create a new product\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/admin/products\x12\x95\x01\n" +
-	"\x06Update\x12\".inventory.v1.UpdateProductRequest\x1a\x16.google.protobuf.Empty\"O\x92A*\n" +
-	"\aproduct\x12\x1fupdate existing product details\x82\xd3\xe4\x93\x02\x1c:\x01*\x1a\x17/v1/admin/products/{id}\x12\x88\x01\n" +
-	"\x06Delete\x12\".inventory.v1.DeleteProductRequest\x1a\x16.google.protobuf.Empty\"B\x92A \n" +
-	"\aproduct\x12\x15soft delete a product\x82\xd3\xe4\x93\x02\x19*\x17/v1/admin/products/{id}\x12\xac\x01\n" +
-	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a\x16.google.protobuf.Empty\"c\x92A)\n" +
+	"\x18out_of_stock_product_ids\x18\x02 \x03(\tR\x14outOfStockProductIds\"W\n" +
+	"\x0fDynamicResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12*\n" +
+	"\x04data\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x04data2\x88\n" +
+	"\n" +
+	"\x10InventoryService\x12\x8c\x01\n" +
+	"\x06Create\x12\".inventory.v1.CreateProductRequest\x1a\x1d.inventory.v1.DynamicResponse\"?\x92A\x1f\n" +
+	"\aproduct\x12\x14create a new product\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/admin/products\x12\x9c\x01\n" +
+	"\x06Update\x12\".inventory.v1.UpdateProductRequest\x1a\x1d.inventory.v1.DynamicResponse\"O\x92A*\n" +
+	"\aproduct\x12\x1fupdate existing product details\x82\xd3\xe4\x93\x02\x1c:\x01*\x1a\x17/v1/admin/products/{id}\x12\x8f\x01\n" +
+	"\x06Delete\x12\".inventory.v1.DeleteProductRequest\x1a\x1d.inventory.v1.DynamicResponse\"B\x92A \n" +
+	"\aproduct\x12\x15soft delete a product\x82\xd3\xe4\x93\x02\x19*\x17/v1/admin/products/{id}\x12\xb3\x01\n" +
+	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a\x1d.inventory.v1.DynamicResponse\"c\x92A)\n" +
 	"\x05stock\x12 manual stock adjustment (In/Out)\x82\xd3\xe4\x93\x021:\x01*\",/v1/admin/products/{product_id}/stock-adjust\x12\x7f\n" +
 	"\x03Get\x12\x1f.inventory.v1.GetProductRequest\x1a\x15.inventory.v1.Product\"@\x92A$\n" +
 	"\acatalog\x12\x19et single product details\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/products/{id}\x12\x99\x01\n" +
@@ -1078,7 +1135,7 @@ func file_proto_inventory_inventory_proto_rawDescGZIP() []byte {
 	return file_proto_inventory_inventory_proto_rawDescData
 }
 
-var file_proto_inventory_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_proto_inventory_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_proto_inventory_inventory_proto_goTypes = []any{
 	(*Product)(nil),                  // 0: inventory.v1.Product
 	(*CreateProductRequest)(nil),     // 1: inventory.v1.CreateProductRequest
@@ -1095,38 +1152,40 @@ var file_proto_inventory_inventory_proto_goTypes = []any{
 	(*ItemCheck)(nil),                // 12: inventory.v1.ItemCheck
 	(*CheckStockRequest)(nil),        // 13: inventory.v1.CheckStockRequest
 	(*CheckStockResponse)(nil),       // 14: inventory.v1.CheckStockResponse
-	(*timestamp.Timestamp)(nil),      // 15: google.protobuf.Timestamp
-	(*empty.Empty)(nil),              // 16: google.protobuf.Empty
+	(*DynamicResponse)(nil),          // 15: inventory.v1.DynamicResponse
+	(*timestamp.Timestamp)(nil),      // 16: google.protobuf.Timestamp
+	(*_struct.Value)(nil),            // 17: google.protobuf.Value
 }
 var file_proto_inventory_inventory_proto_depIdxs = []int32{
-	15, // 0: inventory.v1.Product.created_at:type_name -> google.protobuf.Timestamp
-	15, // 1: inventory.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
-	15, // 2: inventory.v1.ProductItems.created_at:type_name -> google.protobuf.Timestamp
-	15, // 3: inventory.v1.ProductItems.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 0: inventory.v1.Product.created_at:type_name -> google.protobuf.Timestamp
+	16, // 1: inventory.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 2: inventory.v1.ProductItems.created_at:type_name -> google.protobuf.Timestamp
+	16, // 3: inventory.v1.ProductItems.updated_at:type_name -> google.protobuf.Timestamp
 	6,  // 4: inventory.v1.ListProductsResponse.products:type_name -> inventory.v1.ProductItems
 	0,  // 5: inventory.v1.BatchGetProductsResponse.products:type_name -> inventory.v1.Product
 	12, // 6: inventory.v1.CheckStockRequest.items:type_name -> inventory.v1.ItemCheck
-	1,  // 7: inventory.v1.InventoryService.Create:input_type -> inventory.v1.CreateProductRequest
-	2,  // 8: inventory.v1.InventoryService.Update:input_type -> inventory.v1.UpdateProductRequest
-	3,  // 9: inventory.v1.InventoryService.Delete:input_type -> inventory.v1.DeleteProductRequest
-	10, // 10: inventory.v1.InventoryService.AdjustStock:input_type -> inventory.v1.AdjustStockRequest
-	4,  // 11: inventory.v1.InventoryService.Get:input_type -> inventory.v1.GetProductRequest
-	5,  // 12: inventory.v1.InventoryService.List:input_type -> inventory.v1.ListProductsRequest
-	8,  // 13: inventory.v1.InventoryService.GetProducts:input_type -> inventory.v1.BatchGetProductsRequest
-	13, // 14: inventory.v1.InventoryService.StockAvailability:input_type -> inventory.v1.CheckStockRequest
-	16, // 15: inventory.v1.InventoryService.Create:output_type -> google.protobuf.Empty
-	16, // 16: inventory.v1.InventoryService.Update:output_type -> google.protobuf.Empty
-	16, // 17: inventory.v1.InventoryService.Delete:output_type -> google.protobuf.Empty
-	16, // 18: inventory.v1.InventoryService.AdjustStock:output_type -> google.protobuf.Empty
-	0,  // 19: inventory.v1.InventoryService.Get:output_type -> inventory.v1.Product
-	7,  // 20: inventory.v1.InventoryService.List:output_type -> inventory.v1.ListProductsResponse
-	9,  // 21: inventory.v1.InventoryService.GetProducts:output_type -> inventory.v1.BatchGetProductsResponse
-	14, // 22: inventory.v1.InventoryService.StockAvailability:output_type -> inventory.v1.CheckStockResponse
-	15, // [15:23] is the sub-list for method output_type
-	7,  // [7:15] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	17, // 7: inventory.v1.DynamicResponse.data:type_name -> google.protobuf.Value
+	1,  // 8: inventory.v1.InventoryService.Create:input_type -> inventory.v1.CreateProductRequest
+	2,  // 9: inventory.v1.InventoryService.Update:input_type -> inventory.v1.UpdateProductRequest
+	3,  // 10: inventory.v1.InventoryService.Delete:input_type -> inventory.v1.DeleteProductRequest
+	10, // 11: inventory.v1.InventoryService.AdjustStock:input_type -> inventory.v1.AdjustStockRequest
+	4,  // 12: inventory.v1.InventoryService.Get:input_type -> inventory.v1.GetProductRequest
+	5,  // 13: inventory.v1.InventoryService.List:input_type -> inventory.v1.ListProductsRequest
+	8,  // 14: inventory.v1.InventoryService.GetProducts:input_type -> inventory.v1.BatchGetProductsRequest
+	13, // 15: inventory.v1.InventoryService.StockAvailability:input_type -> inventory.v1.CheckStockRequest
+	15, // 16: inventory.v1.InventoryService.Create:output_type -> inventory.v1.DynamicResponse
+	15, // 17: inventory.v1.InventoryService.Update:output_type -> inventory.v1.DynamicResponse
+	15, // 18: inventory.v1.InventoryService.Delete:output_type -> inventory.v1.DynamicResponse
+	15, // 19: inventory.v1.InventoryService.AdjustStock:output_type -> inventory.v1.DynamicResponse
+	0,  // 20: inventory.v1.InventoryService.Get:output_type -> inventory.v1.Product
+	7,  // 21: inventory.v1.InventoryService.List:output_type -> inventory.v1.ListProductsResponse
+	9,  // 22: inventory.v1.InventoryService.GetProducts:output_type -> inventory.v1.BatchGetProductsResponse
+	14, // 23: inventory.v1.InventoryService.StockAvailability:output_type -> inventory.v1.CheckStockResponse
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_proto_inventory_inventory_proto_init() }
@@ -1140,7 +1199,7 @@ func file_proto_inventory_inventory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_inventory_inventory_proto_rawDesc), len(file_proto_inventory_inventory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
