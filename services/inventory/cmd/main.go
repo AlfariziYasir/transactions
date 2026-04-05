@@ -96,8 +96,9 @@ func main() {
 	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
-	productSvc := services.NewProductServices(productRepo, outboxRepo, trx, l)
-	stockSvc := services.NewStockService(stockRepo, inboxRepo, outboxRepo, trx, l)
+	outboxTrigger := make(chan struct{})
+	productSvc := services.NewProductServices(productRepo, trx, l)
+	stockSvc := services.NewStockService(stockRepo, inboxRepo, trx, l)
 
 	consumerCh, err := rmqConn.Channel()
 	if err != nil {
@@ -121,7 +122,7 @@ func main() {
 	}
 	defer publisherCh.Close()
 
-	pub, err := handler.NewPublisher(outboxRepo, publisherCh, l)
+	pub, err := handler.NewPublisher(outboxRepo, publisherCh, l, outboxTrigger)
 	if err != nil {
 		l.Fatal("failed to start inventory publisher", zap.Error(err))
 		return

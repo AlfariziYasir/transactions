@@ -31,7 +31,7 @@ type Payment struct {
 	PaidAt        *time.Time      `db:"paid_at" json:"paid_at"`
 	CreatedAt     time.Time       `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time       `db:"updated_at" json:"updated_at"`
-	Version       int             `db:"version" json:"version"`
+	Version       *int            `db:"version" json:"version"`
 }
 
 func (p *Payment) TableName() string {

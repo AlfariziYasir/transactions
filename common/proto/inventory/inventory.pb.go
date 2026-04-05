@@ -8,7 +8,6 @@ package inventory
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	_ "github.com/golang/protobuf/ptypes/empty"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
@@ -899,6 +898,58 @@ func (x *CheckStockRequest) GetItems() []*ItemCheck {
 	return nil
 }
 
+type StockRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*ItemCheck           `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	OrderId       string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StockRequest) Reset() {
+	*x = StockRequest{}
+	mi := &file_proto_inventory_inventory_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StockRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StockRequest) ProtoMessage() {}
+
+func (x *StockRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_inventory_inventory_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StockRequest.ProtoReflect.Descriptor instead.
+func (*StockRequest) Descriptor() ([]byte, []int) {
+	return file_proto_inventory_inventory_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *StockRequest) GetItems() []*ItemCheck {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *StockRequest) GetOrderId() string {
+	if x != nil {
+		return x.OrderId
+	}
+	return ""
+}
+
 type CheckStockResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	IsAvailable          bool                   `protobuf:"varint,1,opt,name=is_available,json=isAvailable,proto3" json:"is_available,omitempty"`
@@ -909,7 +960,7 @@ type CheckStockResponse struct {
 
 func (x *CheckStockResponse) Reset() {
 	*x = CheckStockResponse{}
-	mi := &file_proto_inventory_inventory_proto_msgTypes[14]
+	mi := &file_proto_inventory_inventory_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -921,7 +972,7 @@ func (x *CheckStockResponse) String() string {
 func (*CheckStockResponse) ProtoMessage() {}
 
 func (x *CheckStockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_inventory_inventory_proto_msgTypes[14]
+	mi := &file_proto_inventory_inventory_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -934,7 +985,7 @@ func (x *CheckStockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckStockResponse.ProtoReflect.Descriptor instead.
 func (*CheckStockResponse) Descriptor() ([]byte, []int) {
-	return file_proto_inventory_inventory_proto_rawDescGZIP(), []int{14}
+	return file_proto_inventory_inventory_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CheckStockResponse) GetIsAvailable() bool {
@@ -961,7 +1012,7 @@ type DynamicResponse struct {
 
 func (x *DynamicResponse) Reset() {
 	*x = DynamicResponse{}
-	mi := &file_proto_inventory_inventory_proto_msgTypes[15]
+	mi := &file_proto_inventory_inventory_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -973,7 +1024,7 @@ func (x *DynamicResponse) String() string {
 func (*DynamicResponse) ProtoMessage() {}
 
 func (x *DynamicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_inventory_inventory_proto_msgTypes[15]
+	mi := &file_proto_inventory_inventory_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -986,7 +1037,7 @@ func (x *DynamicResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DynamicResponse.ProtoReflect.Descriptor instead.
 func (*DynamicResponse) Descriptor() ([]byte, []int) {
-	return file_proto_inventory_inventory_proto_rawDescGZIP(), []int{15}
+	return file_proto_inventory_inventory_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DynamicResponse) GetMessage() string {
@@ -1007,7 +1058,7 @@ var File_proto_inventory_inventory_proto protoreflect.FileDescriptor
 
 const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\n" +
-	"\x1fproto/inventory/inventory.proto\x12\finventory.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\xd3\x02\n" +
+	"\x1fproto/inventory/inventory.proto\x12\finventory.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\xd3\x02\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12\x12\n" +
@@ -1090,13 +1141,16 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1a\n" +
 	"\bquantity\x18\x02 \x01(\x05R\bquantity\"O\n" +
 	"\x11CheckStockRequest\x12:\n" +
-	"\x05items\x18\x01 \x03(\v2\x17.inventory.v1.ItemCheckB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\"o\n" +
+	"\x05items\x18\x01 \x03(\v2\x17.inventory.v1.ItemCheckB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\"r\n" +
+	"\fStockRequest\x12:\n" +
+	"\x05items\x18\x01 \x03(\v2\x17.inventory.v1.ItemCheckB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\x12&\n" +
+	"\border_id\x18\x02 \x01(\tB\v\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\aorderId\"o\n" +
 	"\x12CheckStockResponse\x12!\n" +
 	"\fis_available\x18\x01 \x01(\bR\visAvailable\x126\n" +
 	"\x18out_of_stock_product_ids\x18\x02 \x03(\tR\x14outOfStockProductIds\"W\n" +
 	"\x0fDynamicResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12*\n" +
-	"\x04data\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x04data2\x88\n" +
+	"\x04data\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x04data2\xd5\n" +
 	"\n" +
 	"\x10InventoryService\x12\x8c\x01\n" +
 	"\x06Create\x12\".inventory.v1.CreateProductRequest\x1a\x1d.inventory.v1.DynamicResponse\"?\x92A\x1f\n" +
@@ -1104,7 +1158,8 @@ const file_proto_inventory_inventory_proto_rawDesc = "" +
 	"\x06Update\x12\".inventory.v1.UpdateProductRequest\x1a\x1d.inventory.v1.DynamicResponse\"O\x92A*\n" +
 	"\aproduct\x12\x1fupdate existing product details\x82\xd3\xe4\x93\x02\x1c:\x01*\x1a\x17/v1/admin/products/{id}\x12\x8f\x01\n" +
 	"\x06Delete\x12\".inventory.v1.DeleteProductRequest\x1a\x1d.inventory.v1.DynamicResponse\"B\x92A \n" +
-	"\aproduct\x12\x15soft delete a product\x82\xd3\xe4\x93\x02\x19*\x17/v1/admin/products/{id}\x12\xb3\x01\n" +
+	"\aproduct\x12\x15soft delete a product\x82\xd3\xe4\x93\x02\x19*\x17/v1/admin/products/{id}\x12K\n" +
+	"\fReserveStock\x12\x1a.inventory.v1.StockRequest\x1a\x1d.inventory.v1.DynamicResponse\"\x00\x12\xb3\x01\n" +
 	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a\x1d.inventory.v1.DynamicResponse\"c\x92A)\n" +
 	"\x05stock\x12 manual stock adjustment (In/Out)\x82\xd3\xe4\x93\x021:\x01*\",/v1/admin/products/{product_id}/stock-adjust\x12\x7f\n" +
 	"\x03Get\x12\x1f.inventory.v1.GetProductRequest\x1a\x15.inventory.v1.Product\"@\x92A$\n" +
@@ -1135,7 +1190,7 @@ func file_proto_inventory_inventory_proto_rawDescGZIP() []byte {
 	return file_proto_inventory_inventory_proto_rawDescData
 }
 
-var file_proto_inventory_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_proto_inventory_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_proto_inventory_inventory_proto_goTypes = []any{
 	(*Product)(nil),                  // 0: inventory.v1.Product
 	(*CreateProductRequest)(nil),     // 1: inventory.v1.CreateProductRequest
@@ -1151,41 +1206,45 @@ var file_proto_inventory_inventory_proto_goTypes = []any{
 	(*StockResponse)(nil),            // 11: inventory.v1.StockResponse
 	(*ItemCheck)(nil),                // 12: inventory.v1.ItemCheck
 	(*CheckStockRequest)(nil),        // 13: inventory.v1.CheckStockRequest
-	(*CheckStockResponse)(nil),       // 14: inventory.v1.CheckStockResponse
-	(*DynamicResponse)(nil),          // 15: inventory.v1.DynamicResponse
-	(*timestamp.Timestamp)(nil),      // 16: google.protobuf.Timestamp
-	(*_struct.Value)(nil),            // 17: google.protobuf.Value
+	(*StockRequest)(nil),             // 14: inventory.v1.StockRequest
+	(*CheckStockResponse)(nil),       // 15: inventory.v1.CheckStockResponse
+	(*DynamicResponse)(nil),          // 16: inventory.v1.DynamicResponse
+	(*timestamp.Timestamp)(nil),      // 17: google.protobuf.Timestamp
+	(*_struct.Value)(nil),            // 18: google.protobuf.Value
 }
 var file_proto_inventory_inventory_proto_depIdxs = []int32{
-	16, // 0: inventory.v1.Product.created_at:type_name -> google.protobuf.Timestamp
-	16, // 1: inventory.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
-	16, // 2: inventory.v1.ProductItems.created_at:type_name -> google.protobuf.Timestamp
-	16, // 3: inventory.v1.ProductItems.updated_at:type_name -> google.protobuf.Timestamp
+	17, // 0: inventory.v1.Product.created_at:type_name -> google.protobuf.Timestamp
+	17, // 1: inventory.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
+	17, // 2: inventory.v1.ProductItems.created_at:type_name -> google.protobuf.Timestamp
+	17, // 3: inventory.v1.ProductItems.updated_at:type_name -> google.protobuf.Timestamp
 	6,  // 4: inventory.v1.ListProductsResponse.products:type_name -> inventory.v1.ProductItems
 	0,  // 5: inventory.v1.BatchGetProductsResponse.products:type_name -> inventory.v1.Product
 	12, // 6: inventory.v1.CheckStockRequest.items:type_name -> inventory.v1.ItemCheck
-	17, // 7: inventory.v1.DynamicResponse.data:type_name -> google.protobuf.Value
-	1,  // 8: inventory.v1.InventoryService.Create:input_type -> inventory.v1.CreateProductRequest
-	2,  // 9: inventory.v1.InventoryService.Update:input_type -> inventory.v1.UpdateProductRequest
-	3,  // 10: inventory.v1.InventoryService.Delete:input_type -> inventory.v1.DeleteProductRequest
-	10, // 11: inventory.v1.InventoryService.AdjustStock:input_type -> inventory.v1.AdjustStockRequest
-	4,  // 12: inventory.v1.InventoryService.Get:input_type -> inventory.v1.GetProductRequest
-	5,  // 13: inventory.v1.InventoryService.List:input_type -> inventory.v1.ListProductsRequest
-	8,  // 14: inventory.v1.InventoryService.GetProducts:input_type -> inventory.v1.BatchGetProductsRequest
-	13, // 15: inventory.v1.InventoryService.StockAvailability:input_type -> inventory.v1.CheckStockRequest
-	15, // 16: inventory.v1.InventoryService.Create:output_type -> inventory.v1.DynamicResponse
-	15, // 17: inventory.v1.InventoryService.Update:output_type -> inventory.v1.DynamicResponse
-	15, // 18: inventory.v1.InventoryService.Delete:output_type -> inventory.v1.DynamicResponse
-	15, // 19: inventory.v1.InventoryService.AdjustStock:output_type -> inventory.v1.DynamicResponse
-	0,  // 20: inventory.v1.InventoryService.Get:output_type -> inventory.v1.Product
-	7,  // 21: inventory.v1.InventoryService.List:output_type -> inventory.v1.ListProductsResponse
-	9,  // 22: inventory.v1.InventoryService.GetProducts:output_type -> inventory.v1.BatchGetProductsResponse
-	14, // 23: inventory.v1.InventoryService.StockAvailability:output_type -> inventory.v1.CheckStockResponse
-	16, // [16:24] is the sub-list for method output_type
-	8,  // [8:16] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	12, // 7: inventory.v1.StockRequest.items:type_name -> inventory.v1.ItemCheck
+	18, // 8: inventory.v1.DynamicResponse.data:type_name -> google.protobuf.Value
+	1,  // 9: inventory.v1.InventoryService.Create:input_type -> inventory.v1.CreateProductRequest
+	2,  // 10: inventory.v1.InventoryService.Update:input_type -> inventory.v1.UpdateProductRequest
+	3,  // 11: inventory.v1.InventoryService.Delete:input_type -> inventory.v1.DeleteProductRequest
+	14, // 12: inventory.v1.InventoryService.ReserveStock:input_type -> inventory.v1.StockRequest
+	10, // 13: inventory.v1.InventoryService.AdjustStock:input_type -> inventory.v1.AdjustStockRequest
+	4,  // 14: inventory.v1.InventoryService.Get:input_type -> inventory.v1.GetProductRequest
+	5,  // 15: inventory.v1.InventoryService.List:input_type -> inventory.v1.ListProductsRequest
+	8,  // 16: inventory.v1.InventoryService.GetProducts:input_type -> inventory.v1.BatchGetProductsRequest
+	13, // 17: inventory.v1.InventoryService.StockAvailability:input_type -> inventory.v1.CheckStockRequest
+	16, // 18: inventory.v1.InventoryService.Create:output_type -> inventory.v1.DynamicResponse
+	16, // 19: inventory.v1.InventoryService.Update:output_type -> inventory.v1.DynamicResponse
+	16, // 20: inventory.v1.InventoryService.Delete:output_type -> inventory.v1.DynamicResponse
+	16, // 21: inventory.v1.InventoryService.ReserveStock:output_type -> inventory.v1.DynamicResponse
+	16, // 22: inventory.v1.InventoryService.AdjustStock:output_type -> inventory.v1.DynamicResponse
+	0,  // 23: inventory.v1.InventoryService.Get:output_type -> inventory.v1.Product
+	7,  // 24: inventory.v1.InventoryService.List:output_type -> inventory.v1.ListProductsResponse
+	9,  // 25: inventory.v1.InventoryService.GetProducts:output_type -> inventory.v1.BatchGetProductsResponse
+	15, // 26: inventory.v1.InventoryService.StockAvailability:output_type -> inventory.v1.CheckStockResponse
+	18, // [18:27] is the sub-list for method output_type
+	9,  // [9:18] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_proto_inventory_inventory_proto_init() }
@@ -1199,7 +1258,7 @@ func file_proto_inventory_inventory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_inventory_inventory_proto_rawDesc), len(file_proto_inventory_inventory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

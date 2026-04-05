@@ -114,6 +114,7 @@ message OrderItem {
 
 message CreateOrderReponse {
     string order_id = 1;
+    string payment_url = 2;
 }
 
 message CreateOrderRequest {

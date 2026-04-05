@@ -373,6 +373,8 @@ func (m *CreateOrderReponse) validate(all bool) error {
 
 	// no validation rules for OrderId
 
+	// no validation rules for PaymentUrl
+
 	if len(errors) > 0 {
 		return CreateOrderReponseMultiError(errors)
 	}

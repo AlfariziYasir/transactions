@@ -8,7 +8,6 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 import "google/api/field_behavior.proto";
 import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
 
@@ -69,6 +68,11 @@ service InventoryService {
     };
   }
 
+  // =======================
+  // domain stock management
+  // =======================
+  rpc ReserveStock(StockRequest) returns (DynamicResponse) {}
+  
   rpc AdjustStock(AdjustStockRequest) returns (DynamicResponse) {
     option (google.api.http) = {
       post: "/v1/admin/products/{product_id}/stock-adjust"
@@ -77,6 +81,17 @@ service InventoryService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       tags: "stock";
       summary: "manual stock adjustment (In/Out)";
+    };
+  }
+
+  rpc StockAvailability(CheckStockRequest) returns (CheckStockResponse) {
+    option (google.api.http) = {
+      post: "/v1/products/check-stock"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "stock";
+      summary: "validate stock availability before order creation";
     };
   }
 
@@ -108,17 +123,6 @@ service InventoryService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       tags: "catalog";
       summary: "get multiple products by IDs";
-    };
-  }
-
-  rpc StockAvailability(CheckStockRequest) returns (CheckStockResponse) {
-    option (google.api.http) = {
-      post: "/v1/products/check-stock"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      tags: "stock";
-      summary: "validate stock availability before order creation";
     };
   }
 }
@@ -268,6 +272,17 @@ message CheckStockRequest {
   repeated ItemCheck items = 1 [
     (google.api.field_behavior) = REQUIRED,
     (validate.rules).repeated.min_items = 1
+  ];
+}
+
+message StockRequest {
+  repeated ItemCheck items = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).repeated.min_items = 1
+  ];
+  string order_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.uuid = true
   ];
 }
 

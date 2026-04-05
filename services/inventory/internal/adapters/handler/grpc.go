@@ -83,6 +83,7 @@ func (h *inventoryHandler) Update(ctx context.Context, req *inventory.UpdateProd
 		Message: "update product is successfully",
 	}, nil
 }
+
 func (h *inventoryHandler) Delete(ctx context.Context, req *inventory.DeleteProductRequest) (*inventory.DynamicResponse, error) {
 	err := h.productSvc.Delete(ctx, req.GetId())
 	if err != nil {
@@ -94,6 +95,32 @@ func (h *inventoryHandler) Delete(ctx context.Context, req *inventory.DeleteProd
 		Message: "update product is successfully",
 	}, nil
 }
+
+func (h *inventoryHandler) ReserveStock(ctx context.Context, req *inventory.StockRequest) (*inventory.DynamicResponse, error) {
+	var items []model.ItemCheck
+	for _, i := range req.Items {
+		items = append(items, model.ItemCheck{
+			ProductID: i.ProductId,
+			Quantity:  int(i.Quantity),
+		})
+	}
+
+	reqReserve := model.ReserveStock{
+		OrderID: req.OrderId,
+		Items:   items,
+	}
+
+	err := h.stockSvc.Reserve(ctx, &reqReserve)
+	if err != nil {
+		h.log.Error("failed to reserve stock", zap.Error(err))
+		return nil, errorx.MapError(err, h.log)
+	}
+
+	return &inventory.DynamicResponse{
+		Message: "reserve stock success",
+	}, nil
+}
+
 func (h *inventoryHandler) AdjustStock(ctx context.Context, req *inventory.AdjustStockRequest) (*inventory.DynamicResponse, error) {
 	stock := model.AdjustStock{
 		ProductID:          req.ProductId,
@@ -111,8 +138,11 @@ func (h *inventoryHandler) AdjustStock(ctx context.Context, req *inventory.Adjus
 		Message: "stock has been adjusted",
 	}, nil
 }
+
 func (h *inventoryHandler) Get(ctx context.Context, req *inventory.GetProductRequest) (*inventory.Product, error) {
-	product, err := h.productSvc.Get(ctx, req.GetId())
+	product := model.ProductWithStock{ID: req.Id}
+
+	err := h.productSvc.Get(ctx, &product)
 	if err != nil {
 		h.log.Error("failed to product by id", zap.Error(err))
 		return nil, errorx.MapError(err, h.log)
@@ -131,6 +161,7 @@ func (h *inventoryHandler) Get(ctx context.Context, req *inventory.GetProductReq
 		UpdatedAt:        timestamppb.New(product.UpdatedAt),
 	}, nil
 }
+
 func (h *inventoryHandler) List(ctx context.Context, req *inventory.ListProductsRequest) (*inventory.ListProductsResponse, error) {
 	listReq := model.ListRequest{
 		PageSize:  uint64(req.PageSize),
@@ -193,6 +224,7 @@ func (h *inventoryHandler) GetProducts(ctx context.Context, req *inventory.Batch
 		Products: res,
 	}, nil
 }
+
 func (h *inventoryHandler) StockAvailability(ctx context.Context, req *inventory.CheckStockRequest) (*inventory.CheckStockResponse, error) {
 	var items []model.ItemCheck
 	for _, i := range req.Items {

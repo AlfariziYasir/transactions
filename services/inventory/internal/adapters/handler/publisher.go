@@ -15,12 +15,14 @@ type publisher struct {
 	outboxRepo ports.OutboxRepo
 	ch         *amqp091.Channel
 	log        *logger.Logger
+	outboxCh   chan struct{}
 }
 
 func NewPublisher(
 	outboxRepo ports.OutboxRepo,
 	ch *amqp091.Channel,
 	log *logger.Logger,
+	outboxCh chan struct{},
 ) (*publisher, error) {
 	err := ch.Confirm(false)
 	if err != nil {
@@ -36,17 +38,36 @@ func NewPublisher(
 }
 
 func (p *publisher) Start(ctx context.Context) {
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
+	// ticker := time.NewTicker(2 * time.Second)
+	// defer ticker.Stop()
 
 	p.log.Info("worker started")
+	debounceDuration := 50 * time.Millisecond
+	var timer *time.Timer
+	var timerCh <-chan time.Time
 
 	for {
 		select {
 		case <-ctx.Done():
 			p.log.Info("stopping worker")
-		case <-ticker.C:
+			return
+		case <-p.outboxCh:
+			if timer == nil {
+				timer = time.NewTimer(debounceDuration)
+				timerCh = timer.C
+			} else {
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				timer.Reset(debounceDuration)
+			}
+		case <-timerCh:
 			p.processEvents(ctx)
+			timer = nil
+			timerCh = nil
 		}
 	}
 }

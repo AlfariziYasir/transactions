@@ -74,6 +74,11 @@ type CreateOrderRequest struct {
 	ShippingAddress string        `json:"shipping_address"`
 }
 
+type CreateOrderResponse struct {
+	OrderID    string `json:"order_id"`
+	PaymentURL string `json:"payment_url"`
+}
+
 type ItemRequest struct {
 	ProductID string `json:"product_id"`
 	Quantity  int32  `json:"quantity"`

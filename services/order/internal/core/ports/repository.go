@@ -16,11 +16,6 @@ type OrderRepo interface {
 	Delete(ctx context.Context, id string) error
 }
 
-type ProductRepo interface {
-	Upsert(ctx context.Context, product *model.ProductReplicas) error
-	Get(ctx context.Context, ids []string) ([]*model.ProductReplicas, error)
-}
-
 type OutboxRepo interface {
 	Create(ctx context.Context, outbox *model.Outbox) error
 	Get(ctx context.Context, limit uint64) ([]*model.Outbox, error)

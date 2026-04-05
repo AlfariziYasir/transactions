@@ -25,6 +25,7 @@ type service struct {
 	trx         postgres.Trx
 	log         *logger.Logger
 	cfg         *config.Config
+	outboxCh    chan struct{}
 }
 
 func NewServices(
@@ -35,6 +36,7 @@ func NewServices(
 	gateway ports.PaymentGateway,
 	log *logger.Logger,
 	cfg *config.Config,
+	outboxCh chan struct{},
 ) ports.Services {
 	return &service{
 		paymentRepo: paymentRepo,
@@ -44,6 +46,7 @@ func NewServices(
 		log:         log,
 		trx:         trx,
 		cfg:         cfg,
+		outboxCh:    outboxCh,
 	}
 }
 
@@ -73,6 +76,7 @@ func (s *service) Create(ctx context.Context, req *model.PaymentGatewayReq) (*mo
 		return nil, errorx.NewError(errorx.ErrTypeInternal, err.Error(), err)
 	}
 
+	version := 1
 	now := time.Now()
 	payment.ID = uuid.NewString()
 	payment.OrderID = req.OrderID
@@ -85,7 +89,7 @@ func (s *service) Create(ctx context.Context, req *model.PaymentGatewayReq) (*mo
 	payment.Status = model.PaymentStatusPending
 	payment.CreatedAt = now
 	payment.UpdatedAt = now
-	payment.Version = 1
+	payment.Version = &version
 	err = s.paymentRepo.Create(ctx, &payment)
 	if err != nil {
 		s.log.Error("failed to create payment", zap.Error(err))
@@ -202,12 +206,12 @@ func (s *service) Update(ctx context.Context, req *model.PaymentWebhook) error {
 		"method":       req.PaymentType,
 		"reference_id": req.TransactionID,
 		"updated_at":   now,
-		"version":      payment.Version + 1,
+		"version":      *payment.Version + 1,
 	}
 	if status == string(model.PaymentStatusPaid) {
 		paymentReq["paid_at"] = now
 	}
-	err = s.paymentRepo.Update(txCtx, payment.ID, payment.Version, paymentReq)
+	err = s.paymentRepo.Update(txCtx, payment.ID, *payment.Version, paymentReq)
 	if err != nil {
 		s.log.Error("failed to update payment status", zap.Error(err))
 		return err
@@ -236,6 +240,11 @@ func (s *service) Update(ctx context.Context, req *model.PaymentWebhook) error {
 	if err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
 		return err
+	}
+
+	select {
+	case s.outboxCh <- struct{}{}:
+	default:
 	}
 
 	return nil
@@ -288,10 +297,10 @@ func (s *service) CheckStatus(ctx context.Context) {
 					continue
 				}
 
-				err = s.paymentRepo.Update(txCtx, p.ID, p.Version, map[string]any{
+				err = s.paymentRepo.Update(txCtx, p.ID, *p.Version, map[string]any{
 					"status":     updateStatus,
 					"updated_at": now,
-					"version":    p.Version + 1,
+					"version":    *p.Version + 1,
 				})
 				if err != nil {
 					s.log.Error("failed to update status payment", zap.Error(err))
@@ -325,6 +334,11 @@ func (s *service) CheckStatus(ctx context.Context) {
 					s.log.Error("failed to commit transaction", zap.Error(err))
 					s.trx.Rollback(txCtx)
 					continue
+				}
+
+				select {
+				case s.outboxCh <- struct{}{}:
+				default:
 				}
 
 			}
@@ -379,9 +393,9 @@ func (s *service) Cancel(ctx context.Context, req *model.EventPayload) error {
 	paymentReq := map[string]any{
 		"status":     string(model.PaymentStatusCanceled),
 		"updated_at": now,
-		"version":    payment.Version + 1,
+		"version":    *payment.Version + 1,
 	}
-	err = s.paymentRepo.Update(txCtx, payment.ID, payment.Version, paymentReq)
+	err = s.paymentRepo.Update(txCtx, payment.ID, *payment.Version, paymentReq)
 	if err != nil {
 		s.log.Error("failed to update payment status", zap.Error(err))
 		return err

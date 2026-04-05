@@ -113,8 +113,6 @@ func (c *stockConsumer) processMessage(msg amqp091.Delivery) {
 	event.EventName = msg.RoutingKey
 
 	switch msg.RoutingKey {
-	case "order.created":
-		err = c.svc.Reserve(ctx, &event)
 	case "order.canceled":
 		err = c.svc.Release(ctx, &event)
 	case "order.paid":

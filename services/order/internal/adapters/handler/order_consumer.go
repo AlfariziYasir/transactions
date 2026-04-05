@@ -144,7 +144,7 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	case "payment.success":
 		reqUpdate.Status = model.OrderStatusPaid
 		err = c.svc.Update(ctx, &reqUpdate)
-	case "payment.failed", "payment.expired", "inventory.reserved.failed":
+	case "payment.failed", "payment.expired":
 		reqUpdate.Status = model.OrderStatusFailed
 		err = c.svc.Update(ctx, &reqUpdate)
 	case "shipment.shipped":
@@ -153,9 +153,6 @@ func (c *orderConsumer) processMessage(msg amqp091.Delivery) {
 	case "shipment.delivered":
 		reqUpdate.Status = model.OrderStatusDelivered
 		err = c.svc.Update(ctx, &reqUpdate)
-	case "inventory.reserved.success":
-		reqUpdate.Status = model.OrderStatusWaitingPayment
-		err = c.svc.ReserveProcess(ctx, &reqUpdate)
 	default:
 		c.log.Info("ignoring unhandled event", zap.String("routing_key", msg.RoutingKey))
 		msg.Ack(false)

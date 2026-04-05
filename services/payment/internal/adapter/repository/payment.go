@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/AlfariziYasir/transactions/common/pkg/errorx"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
@@ -77,9 +78,11 @@ func (r *paymentRepo) Get(ctx context.Context, filters map[string]any, payment *
 }
 
 func (r *paymentRepo) GetStatus(ctx context.Context, duration int) ([]*model.Payment, error) {
+	threshold := time.Now().Add(time.Duration(-duration) * time.Minute)
+
 	sqlQuery, args, _ := psql.Select("*").From((&model.Payment{}).TableName()).
 		Where(squirrel.Eq{"status": string(model.PaymentStatusPending)}).
-		Where(squirrel.Expr("created_at <= now() - interval '? minutes'", duration)).
+		Where(squirrel.LtOrEq{"created_at": threshold}).
 		ToSql()
 
 	rows, err := r.getExecutor(ctx).Query(ctx, sqlQuery, args...)

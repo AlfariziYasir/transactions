@@ -245,6 +245,9 @@
       "properties": {
         "orderId": {
           "type": "string"
+        },
+        "paymentUrl": {
+          "type": "string"
         }
       }
     },

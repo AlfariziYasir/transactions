@@ -33,8 +33,9 @@ func setupService() (
 	payment := payment.NewPaymentServiceClient(&grpc.ClientConn{})
 	trx := new(mocks.Trx)
 	log := logger.NewNop()
+	var outboxCh chan struct{}
 
-	svc := NewServices(order, product, outbox, inbox, payment, log, trx)
+	svc := NewServices(order, product, outbox, inbox, payment, log, trx, outboxCh)
 	return svc, outbox, order, product, inbox, trx
 }
 

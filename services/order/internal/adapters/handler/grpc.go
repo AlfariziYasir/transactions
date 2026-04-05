@@ -53,13 +53,14 @@ func (h *handler) Create(ctx context.Context, req *order.CreateOrderRequest) (*o
 		})
 	}
 
-	orderID, err := h.svc.Create(ctx, userID, orderReq)
+	res, err := h.svc.Create(ctx, userID, orderReq)
 	if err != nil {
 		return nil, errorx.MapError(err, h.log)
 	}
 
 	return &order.CreateOrderReponse{
-		OrderId: orderID,
+		OrderId:    res.OrderID,
+		PaymentUrl: res.PaymentURL,
 	}, nil
 }
 

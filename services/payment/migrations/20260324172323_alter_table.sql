@@ -3,7 +3,9 @@ alter table outbox
 add column updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 alter table inbox
-rename handler_name to event_name,
+rename handler_name to event_name;
+
+alter table inbox
 add constraint idx_message_id unique (message_id);
 
 alter table payments

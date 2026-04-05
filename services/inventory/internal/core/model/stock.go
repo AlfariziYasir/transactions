@@ -89,10 +89,7 @@ type CheckStockResponse struct {
 	OutOfStockProductIDs []string `json:"out_of_stock_product_ids"`
 }
 
-type ProductEvent struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Price       decimal.Decimal `json:"price"`
-	IsActive    bool            `json:"is_active"`
-	LastUpdated time.Time       `json:"last_updated"`
+type ReserveStock struct {
+	Items   []ItemCheck
+	OrderID string
 }

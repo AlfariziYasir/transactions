@@ -98,7 +98,8 @@ func main() {
 	trx := postgres.NewTransaction(pg.Pool)
 	gateway := gateway.NewMidtransGateway(cfg.WebhookServerKey, l, false, cfg)
 
-	svc := services.NewServices(paymentRepo, outboxRepo, inboxRepo, trx, gateway, l, cfg)
+	outboxTrigger := make(chan struct{})
+	svc := services.NewServices(paymentRepo, outboxRepo, inboxRepo, trx, gateway, l, cfg, outboxTrigger)
 	// worker check payment status
 	go svc.CheckStatus(ctx)
 
@@ -108,7 +109,7 @@ func main() {
 		return
 	}
 	defer outboxCh.Close()
-	pub, err := handler.NewPublisher(outboxRepo, outboxCh, l)
+	pub, err := handler.NewPublisher(outboxRepo, outboxCh, l, outboxTrigger)
 	if err != nil {
 		l.Fatal("failed start publisher", zap.Error(err))
 		return

@@ -277,6 +277,7 @@ func (x *OrderItem) GetSubtotal() string {
 type CreateOrderReponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	PaymentUrl    string                 `protobuf:"bytes,2,opt,name=payment_url,json=paymentUrl,proto3" json:"payment_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -314,6 +315,13 @@ func (*CreateOrderReponse) Descriptor() ([]byte, []int) {
 func (x *CreateOrderReponse) GetOrderId() string {
 	if x != nil {
 		return x.OrderId
+	}
+	return ""
+}
+
+func (x *CreateOrderReponse) GetPaymentUrl() string {
+	if x != nil {
+		return x.PaymentUrl
 	}
 	return ""
 }
@@ -729,9 +737,11 @@ const file_proto_order_order_proto_rawDesc = "" +
 	"\fproduct_name\x18\x02 \x01(\tR\vproductName\x12\x1a\n" +
 	"\bquantity\x18\x03 \x01(\x05R\bquantity\x12\x14\n" +
 	"\x05price\x18\x04 \x01(\tR\x05price\x12\x1a\n" +
-	"\bsubtotal\x18\x05 \x01(\tR\bsubtotal\"/\n" +
+	"\bsubtotal\x18\x05 \x01(\tR\bsubtotal\"P\n" +
 	"\x12CreateOrderReponse\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\tR\aorderId\"\xdf\x02\n" +
+	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x1f\n" +
+	"\vpayment_url\x18\x02 \x01(\tR\n" +
+	"paymentUrl\"\xdf\x02\n" +
 	"\x12CreateOrderRequest\x12K\n" +
 	"\x05items\x18\x01 \x03(\v2(.order.v1.CreateOrderRequest.ItemRequestB\v\xe0A\x02\xfaB\x05\x92\x01\x02\b\x01R\x05items\x125\n" +
 	"\x10shipping_address\x18\x02 \x01(\tB\n" +

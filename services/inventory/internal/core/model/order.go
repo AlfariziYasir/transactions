@@ -12,18 +12,13 @@ type InventoryReserveResultEvent struct {
 	Reason  string `json:"reason"`
 }
 
-type OrderItem struct {
-	ProductID string `json:"product_id"`
-	Quantity  int    `json:"quantity"`
-}
-
 type OrderEvent struct {
 	MessageID   string          `json:"message_id"`
 	EventName   string          `json:"event_name"`
 	OrderID     string          `json:"order_id"`
 	UserID      string          `json:"user_id"`
 	TotalAmount decimal.Decimal `json:"total_amount"`
-	Items       []OrderItem     `json:"items"`
+	Items       []ItemCheck     `json:"items"`
 	EventTime   time.Time       `json:"event_time"`
 	Reason      string          `json:"reason"`
 }

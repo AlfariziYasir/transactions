@@ -18,6 +18,7 @@ import (
 	"github.com/AlfariziYasir/transactions/common/pkg/middleware"
 	"github.com/AlfariziYasir/transactions/common/pkg/postgres"
 	"github.com/AlfariziYasir/transactions/common/pkg/redis"
+	"github.com/AlfariziYasir/transactions/common/proto/inventory"
 	"github.com/AlfariziYasir/transactions/common/proto/order"
 	"github.com/AlfariziYasir/transactions/common/proto/payment"
 	"github.com/AlfariziYasir/transactions/services/order/config"
@@ -92,12 +93,11 @@ func main() {
 	defer rmqConn.Close()
 
 	orderRepo := repository.NewOrderRepo(pg.Pool)
-	productRepo := repository.NewProductRepo(pg.Pool)
 	outboxRepo := repository.NewOutboxRepo(pg.Pool)
 	inboxRepo := repository.NewInboxRepo(pg.Pool)
 	trx := postgres.NewTransaction(pg.Pool)
 
-	// grpc client
+	// grpc client payment
 	paymentConn, err := grpc.NewClient(
 		cfg.PaymentClient,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -110,22 +110,21 @@ func main() {
 
 	paymentClient := payment.NewPaymentServiceClient(paymentConn)
 
-	svc := services.NewServices(orderRepo, productRepo, outboxRepo, inboxRepo, paymentClient, l, trx)
-
-	productCh, err := rmqConn.Channel()
+	// grpc client inventory
+	inventoryConn, err := grpc.NewClient(
+		cfg.PaymentClient,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
-		l.Fatal("channel failed", zap.Error(err))
+		l.Fatal("failed to connect client inventory", zap.Error(err))
 		return
 	}
-	defer productCh.Close()
+	defer inventoryConn.Close()
 
-	go func() {
-		err = handler.NewProductConsumer(productRepo, inboxRepo, l, productCh, trx).Start()
-		if err != nil {
-			l.Fatal("failed to start product consumer", zap.Error(err))
-			return
-		}
-	}()
+	inventoryClient := inventory.NewInventoryServiceClient(inventoryConn)
+
+	outboxTrigger := make(chan struct{})
+	svc := services.NewServices(orderRepo, outboxRepo, inboxRepo, inventoryClient, paymentClient, l, trx, outboxTrigger)
 
 	orderCh, err := rmqConn.Channel()
 	if err != nil {
@@ -149,7 +148,7 @@ func main() {
 	}
 	defer outboxCh.Close()
 
-	pub, err := handler.NewPublisher(outboxRepo, outboxCh, l)
+	pub, err := handler.NewPublisher(outboxRepo, outboxCh, l, outboxTrigger)
 	if err != nil {
 		l.Fatal("failed start publisher", zap.Error(err))
 		return
